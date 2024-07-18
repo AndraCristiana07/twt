@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra-container
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_USER=andra
+      - CASSANDRA_PASSWORD=andra
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    networks:
+      project-network:
+        ipv4_address: 10.0.0.2
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      project-network:
+        ipv4_address: 10.0.0.3
+    volumes:
+      - backend:/sqlite3
+    
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      project-network:
+        ipv4_address: 10.0.0.4
+
+volumes:
+  cassandra-data:
+  backend:
+
+networks:
+  project-network:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.0.0.0/28
+         gateway: 10.0.0.1

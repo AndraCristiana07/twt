@@ -1,0 +1,17 @@
+twitter:
+
+	-cassandra
+	-cdn
+	-redis
+	-elastic search
+	-spark/hadoop
+	-kafka
+
+commands: 
+- docker exec -it [container-id] bash
+
+-tweet: post, get, delete
+
+- users: follows, followers, 
+
+-delete tweets if user is deleted?

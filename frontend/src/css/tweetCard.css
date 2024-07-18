@@ -1,0 +1,9 @@
+.but {
+    background: transparent;
+    border: none;
+    width: 80px;
+}
+
+.but:hover {
+    color: red;
+}
