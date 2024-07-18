@@ -4,12 +4,13 @@ from . import views
 
 urlpatterns = [
     path('post/', views.PostTweetView.as_view(), name='post_tweet'),
-    path('get/', views.GetTweetsView.as_view(), name='get_tweets'),
     path('get_tweet/<uuid:tweet_id>', views.GetSingleTweetView.as_view(), name='get_tweet'),
     path('delete/<uuid:tweet_id>', views.DeleteTweetView.as_view(), name='delete_tweet'),
     path('like/<uuid:tweet_id>', views.LikeTweetView.as_view(), name='like_tweet'),
     path('unlike/<uuid:like_id>', views.UnlikeTweetView.as_view(), name='unlike_tweet'),
     path('comment/<uuid:tweet_id>', views.PostCommentView.as_view(), name='comment'),
+    path('comment_on_comment/<uuid:comment_id>', views.PostCommentonComment.as_view(), name='comment_on_comment'),
+    path('get_comments_for_comment/<uuid:comment_id>', views.GetCommentsForComment.as_view(), name='get_comments_for_comment'),
     path('get_comments_for_tweet/<uuid:tweet_id>', views.GetCommentsView.as_view(), name='get_comments_for_tweet'),
     path('delete_comment/<uuid:comment_id>', views.DeleteCommentView.as_view(), name='delete_comment'),
     path('like_comment/<uuid:comment_id>', views.LikeCommentView.as_view(), name='like_comment'),
@@ -28,4 +29,15 @@ urlpatterns = [
     path('get_user_retweets/<user_id>', views.GetUserRetweetsView.as_view(), name='get_user_retweets'),
     path('following_timeline/', views.FriendsTimelineView.as_view(), name='following_timeline'),
     path('user_timeline/', views.UserTimelineView.as_view(), name='user_timeline'),
+    path('tweet_comment/<uuid:comment_id>/', views.GetSingleCommentView.as_view(), name='tweet_comment'),
+    path('delete_all_likes/', views.DeleteAllLikes.as_view(), name='delete_all_likes'),
+    path('bookmark/<uuid:tweet_id>', views.CreateBookmarkView.as_view(), name='bookmark'),
+    path('bookmark_comment/<uuid:comment_id>', views.CreateCommentBookmarkView.as_view(), name='bookmark_comment'),
+    path('delete_bookmark/<uuid:bookmark_id>', views.DeleteBookmarkView.as_view(), name='delete_bookmark'),
+    path('get_bookmarks/<user_id>', views.GetUserBookmarksView.as_view(), name='get_bookmarks'),
+    path('get_curr_user_likes', views.GetCurrentUserLikes.as_view(), name='get_curr_user_likes'),
+    path('get_curr_user_comments', views.GetCurrentUserComments.as_view(), name='get_curr_user_comments'),
+    path('get_curr_user_retweets', views.GetCurrentUserRetweets.as_view(), name='get_curr_user_retweets'),
+    path('get_retweet_view/<uuid:retweet_id>', views.GetSingleRetweetView.as_view(), name='get_retweet_view'),
+    
 ]

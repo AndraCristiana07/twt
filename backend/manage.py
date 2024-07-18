@@ -4,6 +4,10 @@ import os
 import sys
 
 
+import logging
+logger = logging.getLogger(__name__)
+logger.info('something here')
+
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')

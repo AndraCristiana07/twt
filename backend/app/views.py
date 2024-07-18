@@ -15,8 +15,14 @@ from app.serializer import UserSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from app.models import User
-
 from app.models import Follow
+from app.models import Message
+from app.serializer import MessageSerializer
+from app.documents import UserDocument
+from elasticsearch_dsl.query import MultiMatch
+from app.kafka_producer import follow_user
+
+import logging
 
 class HomeView(APIView):
      
@@ -78,6 +84,17 @@ class GetUserView(APIView):
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
+class GetSpecificUserView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
 class DeleteUserView(APIView):
     permission_classes = (IsAuthenticated,)
     def delete(self, request):
@@ -95,16 +112,14 @@ class UpdateUserView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class FollowUserView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, user_id):
         follower = request.user
-        # user_id = request.data['user_id']
 
         try:
-            # follower = User.objects.get(id=follower_id)
-            # user = User.objects.get(id=user_id)
             user_to_follow = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -113,7 +128,9 @@ class FollowUserView(APIView):
             return Response({'message': 'You already follow this user'}, status=status.HTTP_400_BAD_REQUEST)
 
         Follow.objects.create(follower=follower, followed=user_to_follow)
+        follow_user(follower, user_to_follow)
         return Response({'message': 'Followed successfully'}, status=status.HTTP_201_CREATED)
+    
 
 class UnfollowUserView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -163,80 +180,47 @@ class GetFollowers(APIView):
         return Response(serializer.data)
     
 
-    
+class SendMessageView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def post(self, request):
+        sender = request.user
+        receiver_id = request.data['receiver_id']
+        content = request.data['content']
 
-# class FollowUserView(APIView):
-#     permission_classes = (IsAuthenticated,)
+        try:
+            receiver = User.objects.get(id=receiver_id)
+        except User.DoesNotExist:
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-#     def post(self, request):
-#         follower_id = request.data['follower_id']
-#         user_id = request.data['user_id']
+        message = Message.objects.create(sender=sender, receiver=receiver, content=content)
+        serializer = MessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-#         try:
-#             follower = User.objects.get(id=follower_id)
-#             user = User.objects.get(id=user_id)
-#         except User.DoesNotExist:
-#             return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+class GetMessagesView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self, request, user_id):
+        # user_id = request.user.id
+        # user = User.objects.get(id=user_id)
+        user = request.user
+        if user is None:
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-#         if Follow.objects.filter(follower=follower, followed=user).exists():
-#             return Response({'message': 'You already follow this user'}, status=status.HTTP_400_BAD_REQUEST)
+        sent_messages = Message.objects.filter(sender=user)
+        received_messages = Message.objects.filter(receiver=user)
+        messages = sent_messages.union(received_messages).order_by('-timestamp')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-#         Follow.objects.create(follower=follower, followed=user)
-#         return Response({'message': 'Followed successfully'}, status=status.HTTP_201_CREATED) 
+class GetOneMessageView(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self, request, message_id):
+        try:
+            message = Message.objects.get(id=message_id)
+        except Message.DoesNotExist:
+            return Response({'message': 'Message does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-# class UnfollowUserView(APIView):
-#     permission_classes = (IsAuthenticated,)
-
-#     def post(self, request):
-#         follower_id = request.data['follower_id']
-#         user_id = request.data['user_id']
-
-#         try:
-#             follower = User.objects.get(id=follower_id)
-#             user = User.objects.get(id=user_id)
-#         except User.DoesNotExist:
-#             return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         if not Follow.objects.filter(follower=follower, followed=user).exists():
-#             return Response({'message': 'You do not follow this user'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         Follow.objects.filter(follower=follower, followed=user).delete()
-#         return Response({'message': 'Unfollowed successfully'}, status=status.HTTP_200_OK)
-
-# class GetWhoTheUserFollowsView(APIView):
-#     def get(self, request,user_id):
-#         # user_id = request.data['user_id']
-#         # user_id = request.data.get('user_id')
-
-#         user = User.objects.get(id=user_id)
-#         follows = Follower.objects.filter(follower=user)
-#         serializer = UserSerializer(follows, many=True)
-#         return Response(serializer.data)
-
-# class GetWhoTheUserFollowsView(APIView):
-#     permission_classes = (IsAuthenticated,)
-
-#     def get(self, request, user_id):
-#         user = User.objects.get(id=user_id)
-#         follows = Follow.objects.filter(follower=user)
-#         serializer = UserSerializer(follows, many=True)
-#         return Response(serializer.data)
-    
-    # class GetFollowedUSersView(APIView):
-    # permission_classes = (IsAuthenticated,)
-
-    # def get(self, request, user_id):
-    #     try:
-    #         user = User.objects.get(id=user_id)
-    #     except User.DoesNotExist:
-    #         return Response({'message' : 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    #     followed_users = Follower.objects.filter(follower=user).values_list('user')
-    #     users = User.objects.filter(id__in=followed_users)
-    #     serializer = UserSerializer(users, many=True)
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
+        serializer = MessageSerializer(message)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetAllUsersView(APIView):
@@ -252,39 +236,44 @@ class SearchUserView(APIView):
         serializer = UserSerializer(users, many=True)
         return Response(serializer.data)
     
-
-
-# class FollowUserView(APIView):
+# class PostBiodataView(APIView):
 #     permission_classes = (IsAuthenticated,)
-
 #     def post(self, request):
-#         user_id = request.data['user_id']
-#         follower_id = request.data['follower_id']
-#         # user_id = request.data.get('user_id')
-#         # follow_id = request.data.get('follow_id')
-
-#         user = User.objects.get(id=user_id)
-#         follower = User.objects.get(id=follower_id)
-
-#         if Follower.objects.filter(user=user, follower=follower).exists():
-#             return Response({'message': 'You are already following this user'}, status=status.HTTP_400_BAD_REQUEST)
-
-#         Follower.objects.create(user=user, follower=follower)
-#         return Response({'message': 'User followed successfully'}, status=status.HTTP_201_CREATED)  
-    
-
-# class UnfollowUSerView(APIView):
-#     def post(self, request):
-#         user_id = request.data['user_id']
-#         follower_id = request.data['follower_id']
-#         # user_id = request.data.get('user_id')
-#         # follower_id = request.data.get('follower_id')
-
-#         user = User.objects.get(id=user_id)
-#         follower = User.objects.get(id=follower_id)
-#         if not Follower.objects.filter(user=user, follower=follower).exists():
-#             return Response({'message': 'You are not following this user'}, status=status.HTTP_400_BAD_REQUEST)
+#         user = request.user
+#         bio = request.data['bio']
         
+#         if not bio:
+#             return Response({'status': 'fail', 'message': 'Biodata cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         user.bio = bio
+#         user.save()
+        
+#         serializer = UserSerializer(user)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        
+class SearchUserView(APIView):
+    def get(self, request):
+        q = request.GET.get('q')
+        
+        if not q:
+            return Response({'error': 'Query parameter "q" is required'}, status=status.HTTP_400_BAD_REQUEST) 
+        
+        query = MultiMatch(query=q, fields=['name', 'email', 'username'], type='phrase_prefix')
+        search = UserDocument.search().query(query)
+       
+        response = search.execute()
+        
+        users = []
+        for r in response:
+            users.append({
+                'id': r.id,
+                'email': r.email,
+                'name': r.name,
+                'username': r.username
+            })
 
-#         Follower.objects.filter(user=user, follower=follower).delete()
-#         return Response({'message': 'User unfollowed successfully'}, status=status.HTTP_200_OK)
+        
+        return Response(users, status=status.HTTP_200_OK)
+            
+        

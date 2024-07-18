@@ -99,6 +99,7 @@ class Follow(models.Model):
 
     def _str_(self):
         return self.user.name + ' is following ' + self.follower.name
+
 # class Follower(models.Model):
 #     #for who's following who
 #     user = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)
@@ -113,6 +114,16 @@ class Follow(models.Model):
         
 #     def _str_(self):
 #         return self.user.name + ' is following ' + self.follower.name
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def _str_(self):
+        return f"From {self.sender.username} to {self.receiver.username} ({self.timestamp})"
+
 
 def create_user_profile(sender, instance, created, **kwargs):
     if created:

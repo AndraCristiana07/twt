@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from app.models import User, Follow
+from app.models import User, Follow, Message
 from django.contrib.auth.hashers import make_password
 
 class UserSerializer(serializers.ModelSerializer):
@@ -30,3 +30,8 @@ class FollowerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ('id', 'follower', 'followed', 'created_at')
+        
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ('id', 'sender', 'receiver', 'content', 'timestamp')

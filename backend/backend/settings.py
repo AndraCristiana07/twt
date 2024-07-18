@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR =  Path(__file__).resolve().parent.parent
@@ -26,12 +28,13 @@ SECRET_KEY = 'django-insecure-+90v+0f#i*sdyr9r@tm&)@-f9)-wvrlyhkpn#u4o^fg6zkn9m^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    '192.168.0.190',
-    '127.0.0.1',
-    'localhost'
-]
-
+# ALLOWED_HOSTS = [
+#     '192.168.0.190',
+#     '127.0.0.1',
+    
+#     'localhost'
+# ]
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -42,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_elasticsearch_dsl',
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
@@ -92,6 +96,67 @@ DATABASES = {
     }
 }
 
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': 'http://10.0.0.5:9200'
+    },
+}
+
+# KAFKA_BROKER_URL = 'kafka:9092'
+# KAFKA_NOTIFICATION_TOPIC = 'notifications'
+
+
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'file': {
+#             'level': 'DEBUG',
+#             'class': 'logging.FileHandler',
+#             'filename': '/logging/django/debug.log',
+#         },
+#     },
+#     'loggers': {
+#         'django': {
+#             'handlers': ['file'],
+#             'level': 'DEBUG',
+#             'propagate': True,
+#         },
+#     },
+# }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        "verbose": {
+            "format": "[{levelname}] {asctime} -- {filename} -- T:{threadName} L:{name} {message}",
+            "style": "{",
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            "formatter": "verbose",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": "/app/logs/debug.log",
+            "formatter": "verbose",
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'file'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            # 'propagate': False
+        },
+        'cassandra': {
+            'propagate': False
+        }
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

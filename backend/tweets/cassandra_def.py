@@ -1,10 +1,11 @@
 from cassandra.cluster import Cluster, NoHostAvailable
 from cassandra.auth import PlainTextAuthProvider
+from cassandra.policies import DCAwareRoundRobinPolicy
 import time
 
 def get_session():
     cluster = Cluster(['10.0.0.2'])
-    cluster.auth_provider = PlainTextAuthProvider(username='andra', password='andra')
+    # cluster.auth_provider = PlainTextAuthProvider(username='andra', password='andra')
     session = cluster.connect()
     return session
 
@@ -69,6 +70,17 @@ def create_followings_table():
         following_id TEXT
     )
     """)
+    
+def create_bookmarks_table():
+    session = get_session()
+    session.execute("""
+    CREATE TABLE IF NOT EXISTS twitter.bookmarks (
+        id UUID PRIMARY KEY,
+        user_id TEXT,
+        tweet_id UUID,
+        created_at timestamp
+    )
+    """)
 
 def wait_for_cassandra():
     print("Waiting on Cassandra")
@@ -87,3 +99,4 @@ create_likes_table()
 create_comments_table()
 create_retweets_table()
 create_followings_table()
+create_bookmarks_table()
