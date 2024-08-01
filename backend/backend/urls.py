@@ -14,19 +14,33 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt import views as jwt_views
+from django.urls import re_path
+from rest_framework import permissions
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 urlpatterns = [
-    path('', include('app.urls'),
-        name ='app'),
-    path('token/', 
-        jwt_views.TokenObtainPairView.as_view(), 
-        name ='token_obtain_pair'),
-    path('token/refresh/', 
-        jwt_views.TokenRefreshView.as_view(), 
-        name ='token_refresh'),
+    path("swagger/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "swagger-ui/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path(
+        "redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
+    path("", include("app.urls"), name="app"),
+    path("token/", jwt_views.TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", jwt_views.TokenRefreshView.as_view(), name="token_refresh"),
     # path('admin/', admin.site.urls),
-    path('tweets/', include('tweets.urls')),
+    path("tweets/", include("tweets.urls"), name="tweets"),
 ]

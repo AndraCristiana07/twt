@@ -14,24 +14,11 @@ export function Navigation() {
       }
     }, [isAuth]);
 
-    // const [drawerOpen, setDrawerOpen] = useState(false);
-
-    // const handleDrawerOpen = () => {
-    //     setDrawerOpen(true);
-    // };
-    // const handleDrawerClose = () => {
-    //     setDrawerOpen(false);
-    // };
-    // const navigate = useNavigate();
 
      return ( 
       <div>
         <Navbar bg="dark" variant="dark">
           <Navbar.Brand href="/"> Authentification</Navbar.Brand>            
-          {/* <Button variant="contained" onClick={handleDrawerOpen}>
-                    Open Drawer
-          </Button>
-          <CustomDrawer open={drawerOpen} onClose={handleDrawerClose}  /> */}
          
           <Nav className="me-auto"> 
           {isAuth ? <Nav.Link href="/">Home</Nav.Link> : null}

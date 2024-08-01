@@ -8,8 +8,6 @@ import heartred from "../assets/heart-red.svg";
 import commentImg from "../assets/comment.svg";
 import retweet from "../assets/retweet.svg";
 import retweetred from "../assets/retweet-red.svg"
-import bookmark from "../assets/bookmark.svg";
-import bookmarkedblue from "../assets/bookmark-color.svg"
 import axios from 'axios';
 import { CommentOnComment } from "./commentOnComment";
 import Menu from "./drawer";
@@ -54,6 +52,7 @@ const CommentView = () => {
             window.location.href = '/login';
         } else {
             fetchCommentData(commentId);
+            fetchCommentComments();
         }
     }, [commentId]);
 
@@ -70,26 +69,30 @@ const CommentView = () => {
 
             const data = response.data;
             setComment(data);
-            if (data.comments) {
-                const sortedComments = data.comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                setComments(sortedComments.map(comm => ({
-                    ...comm,
-                    likes: comm.likes || [],
-                    retweets: comm.retweets || [],
-                    comments: comm.comments || [],
-                    bookmarks: comm.bookmarks || [],
-                })));
-            }
-            setLikes(data.likes || []);
-            setRetweets(data.retweets || []);
-            setBookmarks(data.bookmarks || []);
-            setIsLiked(data.likes.some(like => like.user_id === localStorage.getItem('user_id')));
-            setIsRetweeted(data.retweets.some(retweet => retweet.user_id === localStorage.getItem('user_id')));
-            setIsBookmarked(data.bookmarks.some(bookmark => bookmark.user_id === localStorage.getItem('user_id')));
+            
+            // setIsLiked(data.likes.some(like => like.user_id === localStorage.getItem('user_id')));
+            // setIsRetweeted(data.retweets.some(retweet => retweet.user_id === localStorage.getItem('user_id')));
         } catch (error) {
             console.error(error);
         }
     };
+
+    const fetchCommentComments = async () => {
+       
+       try { 
+            const accessToken = localStorage.getItem('access_token');
+            const response = await axios.get(`${apiUrl}/tweets/get_comments_for_comment/${commentId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                withCredentials: true
+            });
+            setComments(response.data.comments);
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     const handleLike = async () => {
         try {
@@ -125,22 +128,7 @@ const CommentView = () => {
         }
     };
 
-    // const handleBookmark = async () => {
-    //     try {
-    //         const accessToken = localStorage.getItem('access_token');
-    //         const response = await axios.post(`${apiUrl}/tweets/bookmark/${comment.id}`, {}, {
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'Authorization': `Bearer ${accessToken}`
-    //             },
-    //             withCredentials: true
-    //         });
-    //         setBookmarks(prevBookmarks => [...prevBookmarks, { id: response.data.bookmark_id, user_id: localStorage.getItem('user_id') }]);
-    //         setIsBookmarked(true);
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // };
+    
 
     const handleUnlike = async () => {
         try {
@@ -179,64 +167,6 @@ const CommentView = () => {
             console.error(error);
         }
     };
-
-    // const handleRemoveBookmark = async () => {
-    //     try {
-    //         const accessToken = localStorage.getItem('access_token');
-    //         const bookmarkId = bookmarks.find(bookmark => bookmark.user_id === localStorage.getItem('user_id')).id;
-    //         await axios.delete(`${apiUrl}/tweets/delete_bookmark/${bookmarkId}`, {
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'Authorization': `Bearer ${accessToken}`
-    //             },
-    //             withCredentials: true,
-    //             data: { comment_id: commentId }
-    //         });
-    //         setBookmarks(prevBookmarks => prevBookmarks.filter(bookmark => bookmark.user_id !== localStorage.getItem('user_id')));
-    //         setIsBookmarked(false);
-    //     } catch (error) {
-    //         console.error(error);
-    //     }
-    // };
-
-    const handleBookmark = async () => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`${apiUrl}/tweets/bookmark/${comment.id}`, {}, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            setBookmarks(prevBookmarks => [...prevBookmarks, { id: response.data.bookmark_id, user_id: localStorage.getItem('user_id') }]);
-            setIsBookmarked(true);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    
-    const handleRemoveBookmark = async () => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const bookmarkId = bookmarks.find(bookmark => bookmark.user_id === localStorage.getItem('user_id')).id;
-            await axios.delete(`${apiUrl}/tweets/delete_bookmark/${bookmarkId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true,
-                data: { comment_id: commentId }
-            });
-            setBookmarks(prevBookmarks => prevBookmarks.filter(bookmark => bookmark.user_id !== localStorage.getItem('user_id')));
-            setIsBookmarked(false);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    
-
-   
 
     const handleUnretweetComment = async (commentId) => {
         try {
@@ -278,25 +208,6 @@ const CommentView = () => {
         }
     };
 
-   const handleRemoveBookmarkComment = async (commentId) => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const bookmarkId = comments.find(comment => comment.id === commentId).bookmarks.find(bookmark => bookmark.user_id === localStorage.getItem('user_id')).id;
-            await axios.delete(`${apiUrl}/tweets/delete_bookmark/${bookmarkId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true,
-                data: { comment_id: commentId }
-            });
-            setComments(comments.map(comment =>
-                comment.id === commentId ? { ...comment, bookmarks: comment.bookmarks.filter(bookmark => bookmark.user_id !== localStorage.getItem('user_id')), isCommentBookmarked: false } : comment
-            ));
-        } catch (error) {
-            console.log(error);
-        }
-    };
 
     const handleRetweetComment = async (commentId) => {
         try {
@@ -334,45 +245,7 @@ const CommentView = () => {
         }
     };
 
-    const handleCommentBookmark = async (commentId) => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`${apiUrl}/tweets/bookmark/${commentId}`, {}, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            setComments(comments.map(comment =>
-                comment.id === commentId ? { ...comment, bookmarks: [...comment.bookmarks, { id: response.data.bookmark_id, user_id: localStorage.getItem('user_id') }], isCommentBookmarked: true } : comment
-            ));
-        } catch (error) {
-            console.log(error);
-        }
-    }
-
-    const countLikes = () => {
-        return likes.length;
-    };
-
-    const countRetweets = () => {
-        return retweets.length;
-    };
-
-    const countComments = () => {
-        return comments.length;
-    };
-
-    const countBookmarks = () => {
-        return bookmarks.length;
-    }
-    
-    const countCommentLikes = (comment) => comment.likes ? comment.likes.length : 0;
-    const countCommentRetweets = (comment) => comment.retweets ? comment.retweets.length : 0;
-    const countCommentComments = (comment) => comment.comments ? comment.comments.length : 0;
-    const countCommentBookmarks = (comment) => comment.bookmarks ? comment.bookmarks.length : 0;
-
+  
     if (!comment) return <div>Loading...</div>;
     
     return (
@@ -392,20 +265,17 @@ const CommentView = () => {
                             <Row>
                                 <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={handleOpenDialog}>
                                     <img src={commentImg} alt="Comment" width={"20px"} />
-                                    <span style={{ color: "black" }} className="ms-1">{countComments()}</span>
+                                    <span style={{ color: "black" }} className="ms-1">{comment.comments}</span>
                                 </Button>
                                 <Button className="btn" onClick={isLiked ? handleUnlike : handleLike} style={{ background: "transparent", border: "none", width: "80px" }}>
                                     <img src={isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                    <span style={{ color: "black" }} className="ms-1">{countLikes()}</span>
+                                    <span style={{ color: "black" }} className="ms-1">{comment.likes}</span>
                                 </Button>
                                 <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={isRetweeted ? handleUnretweet : handleRetweet}>
                                     <img src={isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                    <span style={{ color: "black" }} className="ms-1">{countRetweets()}</span>
+                                    <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
                                 </Button>
-                                <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={isBookmarked ? handleRemoveBookmark : handleBookmark}>
-                                    <img src={isBookmarked ? bookmarkedblue : bookmark} alt="Bookmark" width={"20px"} />
-                                    <span style={{ color: "black" }} className="ms-1">{countBookmarks()}</span>
-                                </Button>
+                                
                             </Row>
                             <CommentOnComment show={showPostCommentDialog} handleClose={handleCloseDialog} commentId={commentId} />
                         </Card.Body>
@@ -424,20 +294,17 @@ const CommentView = () => {
                                     <Row>
                                         <Button className="btn" style={{ background: "transparent", border: "none", width: "60px" }} onClick={(e) => { e.stopPropagation(); handleOpenCommentDialog(comment.id); }}>
                                             <img src={commentImg} alt="Comment" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{countCommentComments(comment)}</span>
+                                            <span style={{ color: "black" }} className="ms-1">{comment.comments}</span>
                                         </Button>
                                         <Button className="btn" onClick={(e) => { e.stopPropagation(); comment.isCommentLiked ? handleUnlikeComment(comment.id) : handleCommentLike(comment.id); }} style={{ background: "transparent", border: "none", width: "60px" }}>
                                             <img src={comment.isCommentLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{countCommentLikes(comment)}</span>
+                                            <span style={{ color: "black" }} className="ms-1">{comment.likes}</span>
                                         </Button>
                                         <Button className="btn" style={{ background: "transparent", border: "none", width: "60px" }} onClick={(e) => { e.stopPropagation(); comment.isCommentRetweeted ? handleUnretweetComment(comment.id) : handleRetweetComment(comment.id); }}>
                                             <img src={comment.isCommentRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{countCommentRetweets(comment)}</span>
+                                            <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
                                         </Button>
-                                        <Button className="btn" style={{ background: "transparent", border: "none", width: "60px" }} onClick={(e) => { e.stopPropagation(); comment.isCommentBookmarked ? handleRemoveBookmarkComment(comment.id) : handleCommentBookmark(comment.id); }}>
-                                            <img src={comment.isCommentBookmarked ? bookmarkedblue : bookmark} alt="Bookmark" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{countCommentBookmarks(comment)}</span>
-                                        </Button>
+                                       
                                     </Row>
                                     <CommentOnComment show={showPostCommentOnCommentDialog && commentIdForDialog === comment.id} handleClose={handleCloseCommentDialog} commentId={comment.id} />
                                 </Card.Body>

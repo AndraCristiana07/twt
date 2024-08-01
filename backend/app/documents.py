@@ -19,5 +19,4 @@ class UserDocument(Document):
             'email',
             'name',
             'username',
-            
         ]

@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Form, Button, Container, Row, Col } from "react-bootstrap";
-
 
 export const Register = () => {
     const [username, setUsername] = useState('');
@@ -12,15 +11,20 @@ export const Register = () => {
     const [email, setEmail] = useState('');
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
+
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl)
+
     const submit = async (e) => {
         e.preventDefault();
-        if(password !== confirmPassword) {
+        setError(null);
+        setMessage(null);
+
+        if (password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
+
         const user = {
             username,
             name,
@@ -29,28 +33,25 @@ export const Register = () => {
         };
 
         try {
-             
-                const response = await axios.post(`${apiUrl}/register/`, user, {
-                headers: { 'Content-Type': 'application/json' }},
-              { withCredentials: true}
-            );
+            const response = await axios.post(`${apiUrl}/register/`, user);
             setMessage(response.data.message);
-            window.location.href = '/login';
-            navigate('/login');
-        } catch (error) {
-            console.error("Registration failed", error);
-            setError('Registration failed. Please try again.');
-            setMessage('Error!')
+            if (response.status === 201) {
+                navigate('/login');
+            }
+        } catch (err) {
+            if (err.response && err.response.data) {
+                setError(err.response.data.message || 'An error occurred.');
+            } else {
+                setError('Register failed.');
+            }
         }
-
     };
 
-    
     return (
         <Container className="mt-5">
             <Row className="justify-content-md-center">
                 <Col md="5">
-                    <h3 style={{display:'flex' ,justifyContent:'center', marginBottom:'30px'}}>Register</h3>
+                    <h3 style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px' }}>Register</h3>
                     <Form onSubmit={submit}>
                         <Form.Group controlId="formUsername">
                             <Form.Label>Username</Form.Label>

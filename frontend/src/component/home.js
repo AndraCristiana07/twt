@@ -9,7 +9,7 @@ export const Home = () => {
     const [tweets, setTweets] = useState([]);
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl);
+    ;
     console.log("aa" + localStorage.getItem('user_id'));
 
     useEffect(() => {
@@ -18,7 +18,7 @@ export const Home = () => {
         } else {
             fetchAllTweets();
         }
-    }, []);
+    });
 
     const fetchAllTweets = async () => {
         try {

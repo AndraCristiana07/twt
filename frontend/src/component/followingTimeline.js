@@ -3,15 +3,14 @@ import { Container, Row, Col, Button, Card, Form } from "react-bootstrap";
 import "../css/home.css";
 import Menu from "./drawer";
 import axios from 'axios';
-import media from '../assets/media.svg'
+import media from '../assets/media.svg';
 import { TweetCard } from "./tweetCard";
 import { useNavigate } from "react-router-dom";
+
 export const FollowingTimeline = () => {
     const [tweets, setTweets] = useState([]);
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl);
-    console.log("aa" + localStorage.getItem('user_id'));
 
     useEffect(() => {
         if (localStorage.getItem('access_token') === null) {
@@ -31,56 +30,20 @@ export const FollowingTimeline = () => {
                 },
                 withCredentials: true
             });
-            console.log(response.data);
-            const tweetIds = response.data.tweets.map(tweet => tweet.id);
-            const detailedTweets = await Promise.all(tweetIds.map(fetchTweetData));
-            setTweets(detailedTweets);
-            console.log(detailedTweets);
-        } catch (error) {
-            console.log(error);
-            if (error.response && error.response.status === 401) {
-                window.location.href = '/login';
-            }
-        }
-    };
-    
 
-    const fetchTweetData = async (tweetId) => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const response = await axios.get(`${apiUrl}/tweets/get_tweet/${tweetId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            const tweet = response.data;
-            tweet.comments = tweet.comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            tweet.isLiked = tweet.likes.some(like => like.user_id === localStorage.getItem('user_id'));
-            tweet.isRetweeted = tweet.retweets.some(retweet => retweet.user_id === localStorage.getItem('user_id'));
-            tweet.isBookmarked = tweet.bookmarks.some(bookmark => bookmark.user_id === localStorage.getItem('user_id'));
-            const userResponse = await axios.get(`${apiUrl}/get_specific_user/${tweet.user_id}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            tweet.username = userResponse.data.username;
-            
-            return tweet;
+            setTweets(response.data.tweets)
         } catch (error) {
             console.log(error);
             if (error.response && error.response.status === 401) {
                 window.location.href = '/login';
             }
-            return null;
         }
     };
+
 
     const handleLike = async (tweetId) => {
         try {
+            
             const accessToken = localStorage.getItem('access_token');
             const response = await axios.post(`${apiUrl}/tweets/like/${tweetId}`, {}, {
                 headers: {
@@ -89,36 +52,40 @@ export const FollowingTimeline = () => {
                 },
                 withCredentials: true
             });
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, likes: [...tweet.likes, { id: response.data.like_id, user_id: localStorage.getItem('user_id') }], isLiked: true } : tweet
-            ));
+
+            // setTweets(tweets.map(tweet =>
+            //     tweet.id === tweetId ? { ...tweet, likes: tweet.likes + 1, isLiked: true } : tweet
+            // ));
+            setTweets(prevTweets => prevTweets.map(tweet => tweet.id === tweetId ? { ...tweet, isLiked: true, likes: tweet.likes + 1 } : tweet));
+       
         } catch (error) {
             console.log(error);
         }
     };
 
-    const handleUnlike = async (tweetId) => {
+    const handleUnlike = async (tweetId, likeId) => {
         try {
+            // const likeId = tweets.find(tweet => tweet.id === tweetId).like_id
+            
             const accessToken = localStorage.getItem('access_token');
-            const likeId = tweets.find(tweet => tweet.id === tweetId).likes.find(like => like.user_id === localStorage.getItem('user_id')).id;
             await axios.delete(`${apiUrl}/tweets/unlike/${likeId}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
-                withCredentials: true,
-                data: { tweet_id: tweetId }
+                withCredentials: true
             });
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, likes: tweet.likes.filter(like => like.user_id !== localStorage.getItem('user_id')), isLiked: false } : tweet
-            ));
-            
+
+            // setTweets(tweets.map(tweet =>
+            //     tweet.id === tweetId ? { ...tweet, likes: tweet.likes - 1, isLiked: false } : tweet
+            // ));
+            setTweets(prevTweets => prevTweets.map(tweet => tweet.id === tweetId ? { ...tweet, isLiked: false, likes: tweet.likes - 1 } : tweet));
         } catch (error) {
             console.log(error);
         }
     };
 
-    const handleRetweet = async (tweetId) => {
+    const handleRetweet = async (tweetId, originalTweetId) => {
         try {
             const accessToken = localStorage.getItem('access_token');
             const response = await axios.post(`${apiUrl}/tweets/retweet/${tweetId}`, {}, {
@@ -128,121 +95,76 @@ export const FollowingTimeline = () => {
                 },
                 withCredentials: true
             });
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, retweets: [...tweet.retweets, { id: response.data.retweet_id, user_id: localStorage.getItem('user_id') }], isRetweeted: true } : tweet
-            ));
+
+            // setTweets(tweets.map(tweet =>
+            //     tweet.id === tweetId || originalTweetId? { ...tweet, retweets: tweet.retweets + 1, isRetweeted: true } : tweet
+            // ));
+            setTweets(prevTweets => prevTweets.map(tweet => tweet.id === tweetId ? { ...tweet, isRetweeted: true, retweets: tweet.retweets + 1 } : tweet));
         } catch (error) {
             console.log(error);
         }
     };
 
-    const handleUnretweet = async (tweetId) => {
+    const handleUnretweet = async (tweetId, retweetId) => {
         try {
             const accessToken = localStorage.getItem('access_token');
-            const retweetId = tweets.find(tweet => tweet.id === tweetId).retweets.find(retweet => retweet.user_id === localStorage.getItem('user_id')).id;
             await axios.delete(`${apiUrl}/tweets/unretweet/${retweetId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true,
-                data: { tweet_id: tweetId }
-            });
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, retweets: tweet.retweets.filter(retweet => retweet.user_id !== localStorage.getItem('user_id')), isRetweeted: false } : tweet
-            ));
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    const handleBookmark = async (tweetId) => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`${apiUrl}/tweets/bookmark/${tweetId}`, {}, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
                 withCredentials: true
             });
-            
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, bookmarks: [...tweet.bookmarks, { id: response.data.bookmark_id, user_id: localStorage.getItem('user_id') }], isBookmarked: true } : tweet
-            ));
-        } catch (error) {
-            console.log(error);
-        }
-    };
-    
-    const handleRemoveBookmark = async (tweetId) => {
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const bookmark = tweets.find(tweet => tweet.id === tweetId).bookmarks.find(bookmark => bookmark.user_id === localStorage.getItem('user_id'));
-            if (!bookmark) {
-                console.log("Bookmark not found");
-                return;
-            }
-            await axios.delete(`${apiUrl}/tweets/delete_bookmark/${bookmark.id}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true,
-                data: { tweet_id: tweetId }
-            });
-            setTweets(tweets.map(tweet =>
-                tweet.id === tweetId ? { ...tweet, bookmarks: tweet.bookmarks.filter(bookmark => bookmark.user_id !== localStorage.getItem('user_id')), isBookmarked: false } : tweet
-            ));
+
+            // setTweets(tweets.map(tweet =>
+            //     tweet.id === tweetId ? { ...tweet, retweets: tweet.retweets - 1, isRetweeted: false } : tweet
+            // ));
+            setTweets(prevTweets => prevTweets.map(tweet => tweet.id === tweetId ? { ...tweet, isRetweeted: false, retweets: tweet.retweets - 1 } : tweet));
         } catch (error) {
             console.log(error);
         }
     };
 
     const [content, setContent] = useState("");
+    const [files, setFiles] = useState([])
     const handleTweetPost = async (e) => {
         e.preventDefault();
-    
         try {
             const accessToken = localStorage.getItem('access_token');
+            const formData = new FormData();
+            for(let i=0; i<files.length; i++) {
+                formData.append(`images`, files[i]);
+            }
+            formData.append(`content`, content);
+            
             const response = await axios.post(
-                `${apiUrl}/tweets/post/`,
-                { content }, 
+                `${apiUrl}/tweets/post`,
+                // { content: content,},
+                formData,
                 {
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "multipart/form-data",
                         'Authorization': `Bearer ${accessToken}`
                     },
                     withCredentials: true
                 }
             );
-    
-            setTweets([response.data, ...tweets]);
-            setContent(""); 
-    
+
+            // setTweets([response.data, ...tweets]);
+            // setContent("");
         } catch (error) {
             console.error('Error posting tweet:', error);
         }
     };
-    
-    
 
+    
     return (
         <Container fluid style={{position:"relative"}}>
-           
             <Row>
                 <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
                     <Menu />
-                </Col>  
+                </Col>
                 <Col xs={{span:9, offset:2}}>
-                    {/* <Row>
-                        <Col>
-                            <Button onClick={() => navigate('/')} style={{ background:"transparent",color:"black", border:"none", width:"17vh"}}>For you</Button>
-                        </Col>
-                        <Col>
-                            <Button onClick={() => navigate('/following')} style={{ color:"black", border:"none", width:"17vh"}}>Following</Button>
-                        </Col>
-                    </Row> */}
                     <Container fluid>
                         <Card className="mt-5">
                             <Card.Body>
@@ -257,15 +179,32 @@ export const FollowingTimeline = () => {
                                         required
                                     />
                                     </Form.Group>
-                                    <img src={media} alt="media" title="media content" style={{width:"4vw", height:"4vh"}}/>
+                                    <div style={{position:"relative", width: '4vw', height: '4vh' }}>
+                                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
+                                        style={{
+                                            position: 'absolute',
+                                            width: '100%',
+                                            height: '100%',
+                                            opacity: 0,
+                                            zIndex: 2,
+                                            cursor: 'pointer'
+                                        }} />
+                                        <img src={media} alt="media" title="media content" 
+                                         style={{
+                                            width: '100%', 
+                                            height: '100%', 
+                                            position: 'absolute',
+                                            zIndex: 1
+                                        }} />
 
+                                    </div>
+                                 
                                     <Button variant="primary" type="submit">
                                         Post Tweet
                                     </Button>
                                 </Form>
                             </Card.Body>
                         </Card>
-                        
                     </Container>
                     <Container  className="container mt-5 text-center">
                         {Array.isArray(tweets) && tweets.length > 0 ? (
@@ -277,8 +216,6 @@ export const FollowingTimeline = () => {
                                     handleUnlike={handleUnlike}
                                     handleRetweet={handleRetweet}
                                     handleUnretweet={handleUnretweet}
-                                    handleBookmark={handleBookmark}
-                                    handleRemoveBookmark={handleRemoveBookmark}
                                 />
                             ))
                         ) : (

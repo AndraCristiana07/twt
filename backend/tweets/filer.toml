@@ -1,0 +1,6 @@
+[cassandra]
+enabled = true
+keyspace="seaweedfs"
+hosts=[
+    "cassandra:9042",
+]

@@ -35,13 +35,6 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-# class App(models.Model):
-#     title = models.CharField(max_length=120)
-#     description = models.TextField()
-#     completed = models.BooleanField(default=False)
-
-#     def _str_(self):
-#         return self.title
     
 class User(AbstractUser):
     username = models.CharField(max_length=120, unique=True)
@@ -53,11 +46,8 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     
-    # user_type = models.PositiveSmallIntegerField(choices=USER_TYPE_CHOICES, default=2)
     objects = CustomUserManager()
 
-    # def __str__(self):
-    #     return self.email
     def follow(self, user):
         if not Follow.objects.filter(follower=self, followed=user).exists():
             Follow.objects.create(follower=self, followed=user)
@@ -95,25 +85,9 @@ class Follow(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['follower', 'followed'], name='unique_following')
         ]
-        # unique_together = ('user', 'follower')
 
     def _str_(self):
         return self.user.name + ' is following ' + self.follower.name
-
-# class Follower(models.Model):
-#     #for who's following who
-#     user = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)
-#     follower = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)
-#     created_at = models.DateTimeField(auto_now_add=True)
-    
-#     class Meta:
-#         constraints = [
-#             models.UniqueConstraint(fields=['user', 'follower'], name='unique_following')
-#         ]
-#         # unique_together = ('user', 'follower')
-        
-#     def _str_(self):
-#         return self.user.name + ' is following ' + self.follower.name
 
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)

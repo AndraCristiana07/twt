@@ -3,16 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Form, Button, Container, Row, Col, Alert } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
-// import dotenv from 'dotenv'
 
-// dotenv.config();
 export const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl)
+    
     const navigate = useNavigate();
 
     const submit = async (e) => {
@@ -37,7 +35,6 @@ export const Login = () => {
             // localStorage.setItem('user_id', data.user_id);
             // console.log(localStorage.getItem('user_id'));
             axios.defaults.headers.common['Authorization'] = `Bearer ${data['access']}`;
-            // navigate('/');
 
             const userResponse = await axios.get(`${apiUrl}/get_user/`, {
                 headers: {
@@ -52,7 +49,7 @@ export const Login = () => {
             window.location.href = '/';
         } catch (error) {
             console.error("Login failed", error);
-            setError("Invalid password or error");
+            setError("Invalid password or email");
         }
     };
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { Modal, Button, Form } from "react-bootstrap";
+import media from '../assets/media.svg'
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
@@ -11,6 +12,8 @@ export const Comment = ({ show, handleClose, tweetId }) => {
     const [content, setContent] = useState('');
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [files, setFiles] = useState([]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,11 +27,18 @@ export const Comment = ({ show, handleClose, tweetId }) => {
 
         try {
             const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`${apiUrl}/tweets/comment/${tweetId}`, {
-                content: content
-            }, {
+            const formdata = new FormData();
+            formdata.append('content', content)
+            for(let i=0; i<files.length; i++){
+                formdata.append(`images`, files[i]);
+                
+            }
+            const response = await axios.post(`${apiUrl}/tweets/comment/${tweetId}`, 
+                formdata,
+            {
                 headers: {
-                    'Content-Type': 'application/json',
+                    // 'Content-Type': 'application/json',
+                    "Content-Type": "multipart/form-data",
                     'Authorization': `Bearer ${accessToken}`
                 }
             });
@@ -64,7 +74,26 @@ export const Comment = ({ show, handleClose, tweetId }) => {
                     </Form.Group>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>{success}</p>}
-                    <Button variant="primary" type="submit">
+                    <div style={{position:"relative", width: '4vw', height: '4vh' }}>
+                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            zIndex: 2,
+                            cursor: 'pointer'
+                        }} />
+                        <img src={media} alt="media" title="media content" 
+                            style={{
+                            width: '100%', 
+                            height: '100%', 
+                            position: 'absolute',
+                            zIndex: 1
+                        }} />
+
+                    </div>
+    <Button variant="primary" type="submit">
                         Post Comment
                     </Button>
                 </Form>

@@ -8,15 +8,8 @@ export const Tweet = ({show, handleClose}) => {
     const [content, setContent] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(null)
-
-    // const handleTweetChange = (e) => {
-    //     setTweet(e.target.value);
-    // }
-
-    // const handleTweetSubmit = (e) => {
-    //     e.preventDefault();
-    //     console.log(tweet);
-    // }
+    const [files, setFiles] = useState([]);
+  
     const apiUrl = process.env.REACT_APP_API_URL
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -30,14 +23,25 @@ export const Tweet = ({show, handleClose}) => {
 
         try {
             const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`${apiUrl}/tweets/post/`, {
-                content: content
-            }, {
+            const formdata = new FormData();
+            formdata.append('content', content)
+            for(let i=0; i<files.length; i++){
+                formdata.append(`images`, files[i]);
+            }
+            const response = await axios.post(`${apiUrl}/tweets/post`, 
+                // { 
+                //     content: content,
+                //     images: files
+                // }, 
+                formdata,
+                // {images:images},
+             {
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "multipart/form-data",
                     'Authorization': `Bearer ${accessToken}`
-                }
-            });
+                },
+                
+            }); // nu e folosit 
 
             setContent("");
             setSuccess("Tweet posted successfully!");
@@ -71,7 +75,26 @@ export const Tweet = ({show, handleClose}) => {
                     </Form.Group>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>{success}</p>}
-                    <img src={media} alt="media" title="media content" style={{width:"4vw", height:"4vh"}}/>
+                    {/* <img src={media} alt="media" title="media content" style={{width:"4vw", height:"4vh"}}/> */}
+                    <div style={{position:"relative", width: '4vw', height: '4vh' }}>
+                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            zIndex: 2,
+                            cursor: 'pointer'
+                        }} />
+                        <img src={media} alt="media" title="media content" 
+                            style={{
+                            width: '100%', 
+                            height: '100%', 
+                            position: 'absolute',
+                            zIndex: 1
+                        }} />
+
+                    </div>
                     <Button variant="primary" type="submit">
                         Post Tweet
                     </Button>

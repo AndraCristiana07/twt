@@ -2,17 +2,28 @@ services:
 
   cassandra:
     image: cassandra:latest
-    container_name: cassandra-container
+    container_name: cassandra
     ports:
       - "9042:9042"
     # environment:
       # - CASSANDRA_USER=andra
       # - CASSANDRA_PASSWORD=andra
-    volumes:
-      - cassandra-data:/var/lib/cassandra
+    # environment:
+    #   - CASSANDRA_CLUSTER_NAME=SeaweedFSCluster
+    healthcheck:
+      test: cqlsh -u cassandra -p cassandra "127.0.0.1" < /dev/null #"[ $(nodetool statusgossip) = running ]"
+      interval: 30s
+      timeout: 20s
+      retries: 10
+    # volumes:
+      # - cassandra-data:/var/lib/cassandra
     networks:
-      project-network:
-        ipv4_address: 10.0.0.2
+      - project-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 3G
 
   backend:
     build: 
@@ -21,15 +32,29 @@ services:
     ports:
       - "8000:8000"
     networks:
-      project-network:
-        ipv4_address: 10.0.0.3
+      - project-network
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     volumes:
       - backend:/sqlite3
+      - ./backend/tests:/app/tests
       - ./backend/app:/app/app
       - ./backend/backend:/app/backend
       - ./backend/tweets:/app/tweets
       - ./backend/logs:/app/logs
-    
+      - ./backend/requirements.txt:/app/requirements.txt
+      - ./backend/manage.py:/app/manage.py
+    deploy:
+      resources:
+        limits:
+          cpus: '1.00'
+          memory: 2G
+
   frontend:
     build: 
       context: ./frontend
@@ -37,94 +62,171 @@ services:
     ports:
       - "3000:3000"
     networks:
-      project-network:
-        ipv4_address: 10.0.0.4
+      - project-network
     volumes:
       - ./frontend/src:/app/src
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1G
 
   elasticsearch:
     image:  docker.elastic.co/elasticsearch/elasticsearch:8.13.0
     container_name: elasticsearch
+    healthcheck:
+      test: curl -s http://elasticsearch:9200 >/dev/null
+      interval: 10s
+      timeout: 10s
+      retries: 24
     environment:
       - CLI_JAVA_OPTS=-Xms2g -Xmx2g
       - bootstrap.memory_lock=true
       - discovery.type=single-node
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
-
     ports:
       - "9200:9200"
       - "9300:9300"
     networks:
-      project-network:
-        ipv4_address: 10.0.0.5
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    
-  seaweedfs-master:
-    image: chrislusf/seaweedfs
-    container_name: seaweedfs-master
-    ports:
-      - "9333:9333"
-    command: 'master'
-    networks:
-      project-network:
-        ipv4_address: 10.0.0.6
-    volumes:
-      - seaweedfs-master-data:/data
-    
-  seaweedfs-volume:
-    image: chrislusf/seaweedfs
-    container_name: seaweedfs-volume
-    ports:
-      - "8080:8080"
-    command: 'volume -mserver="seaweedfs-master:9333" -port=8080'
-    depends_on:
-      - seaweedfs-master
-    networks:
-      project-network:
-        ipv4_address: 10.0.0.7
-    volumes:
-      - seaweedfs-volume-data:/data
-  
-  zookeeper:
-    image: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
-    networks:
-      project-network:
-        ipv4_address: 10.0.0.8
+      - project-network
+    # volumes:
+    #   - elasticsearch-data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2G
         
+  seaweedfsmaster:
+    image: chrislusf/seaweedfs 
+    ports:
+      - 9333:9333
+      - 19333:19333
+      - 9324:9324
+    command: "master -ip=seaweedfsmaster -ip.bind=0.0.0.0 -metricsPort=9324"
+    networks:
+      - project-network
+  
+  seaweedfsvolume:
+    image: chrislusf/seaweedfs 
+    ports:
+      - 8080:8080
+      - 18080:18080
+      - 9325:9325
+    command: 'volume -mserver="seaweedfsmaster:9333" -ip.bind=0.0.0.0 -port=8080  -metricsPort=9325'
+    depends_on:
+      - seaweedfsmaster
+    networks:
+      - project-network
 
+  seaweedfsfiler:
+    image: chrislusf/seaweedfs
+    ports:
+      - 8888:8888
+      - 18888:18888
+      - 9326:9326
+      - 8333:8333
+    command: 'filer -s3 -master="seaweedfsmaster:9333" -ip.bind=0.0.0.0 -metricsPort=9326'
+    tty: true
+    stdin_open: true
+    healthcheck:
+      test: wget --header='Content-Type:application/json' http://localhost:8888 -O /tmp/index.html
+      interval: 30s
+      timeout: 20s
+      retries: 10
+    # depends_on:
+    #   - master
+    #   - volume
+    #   - cassandra
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      seaweedfsmaster:
+        condition: service_started
+      seaweedfsvolume:
+        condition: service_started
+    # volumes:
+    #   - ./backend/tweets/filer.toml:/etc/seaweedfs/filer.toml
+    networks:
+      - project-network
+  
+  # zookeeper:
+  #   image: zookeeper
+  #   container_name: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   networks:
+  #     - project-network
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.50'
+  #         memory: 1G
+        
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: apache/kafka:latest
     container_name: kafka
     ports:
       - "9092:9092"
+      # - "9101:9101"
       - "9093:9093"
-    environment:
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092
-    #   # ,OUTSIDE://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-    #   KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    #   # KAFKA_CREATE_TOPICS: "notification"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    depends_on:
-      - zookeeper
+    # environment:
+    #   KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092
+    # #   # ,OUTSIDE://localhost:9093
+    #   KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+    # #   KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
+    #   KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    #   # KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    # #   # KAFKA_CREATE_TOPICS: "notification"
+    #   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    # environment:
+    #   KAFKA_BROKER_ID: 1
+    #   KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+    #   KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+    #   KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+    #   KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+    #   KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+    #   KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    #   KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    #   KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+    #   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    # environment:
+    #   KAFKA_NODE_ID: 1
+    #   KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    #   KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+    #   KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+    #   KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+    #   KAFKA_PROCESS_ROLES: 'broker,controller'
+
+    # depends_on:
+    #   - zookeeper
     networks:
-      project-network:
-        ipv4_address: 10.0.0.9
-    
-volumes:
-  cassandra-data:
-  backend:
-  elasticsearch-data:
-  seaweedfs-master-data:
-  seaweedfs-volume-data:
+      - project-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 2G
+      
+  nginx:
+    image: nginx
+    ports:
+      - "1234:1234"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - project-network
+    depends_on:
+      seaweedfsfiler:
+        condition: service_healthy
+      backend:
+        condition: service_started
   
+volumes:
+  # cassandra-data:
+  backend:
+  # elasticsearch-data:
 
 networks:
   project-network:

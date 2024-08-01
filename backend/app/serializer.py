@@ -1,4 +1,3 @@
-# serializers.py
 from rest_framework import serializers
 from app.models import User, Follow, Message
 from django.contrib.auth.hashers import make_password
@@ -13,14 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-        # user = User.objects.create_user(
-        #     # username=validated_data['username'],
-        #     # password=validated_data['password'],
-        #     email=validated_data['email'],
-        #     first_name=validated_data['name'],
-        #     password=make_password(validated_data['password'])
-        # )
-        # return user
+       
 
     class Meta:
         model = User

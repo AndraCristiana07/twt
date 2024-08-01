@@ -3,14 +3,12 @@ import axios from "axios";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Menu from "./drawer";	
-// import dotenv from 'dotenv'
-// dotenv.config();
 
 
 const Messages = () => {
     const navigate = useNavigate()
     const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl)
+    
     const [messages, setMessages] = useState([
         {
             id: 1,

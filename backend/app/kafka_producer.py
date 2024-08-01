@@ -13,20 +13,36 @@ import time
  
 # if __name__ == "__main__":
 #     main()
+config = {
+    'bootstrap.servers': 'kafka:9092'
+}
+# producer = None
 
-producer = None
+# def follow_user(follower, following):
+#     message = {
+#         'follower': follower,
+#         'following': following
+#     }
+#     producer.produce('follow_notification', value = json.dumps(message).encode('utf-8'))
+#     producer.flush()    
+producer = Producer(config)
+
+def delivery_report(err, msg):
+    if err is not None:
+        print(f"Message delivery failed: {err}")
+    else:
+        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
 
 def follow_user(follower, following):
     message = {
         'follower': follower,
         'following': following
     }
-    producer.produce('follow_notification', value = json.dumps(message).encode('utf-8'))
-    producer.flush()    
-
+    producer.produce('follow_notification', value=json.dumps(message).encode('utf-8'), callback=delivery_report)
+    producer.flush()
     
 # conf = {
-#     'bootstrap.servers': '10.0.0.9:9092',
+#     'bootstrap.servers': 'kafka:9092',
 #     'client.id': "plang"
 # }
 # while True:
