@@ -1,0 +1,32 @@
+.image-grid {
+    display: grid;
+    gap: 4px;
+  }
+  
+  .image-grid img {
+    width: 50%;
+    height: auto;
+  }
+  
+  .image-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  
+  .image-grid img {
+    max-width: 50%;
+    max-height: 50%;
+  }
+  
+  .image-grid[data-count="2"] {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .image-grid[data-count="3"] {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .image-grid[data-count="4"] {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+  

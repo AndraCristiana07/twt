@@ -22,7 +22,8 @@ import CommentView from './component/commentView';
 import { FollowingTimeline } from './component/followingTimeline';
 import { RepliesPage } from './component/repliesPage';
 import { LikesPage } from './component/likesPage';
-
+import ImageViewer from './component/imageView';
+import { CarouselView } from './component/testCarousel';
 function App() {
 
 
@@ -36,11 +37,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/register" element={<Register />} />
-        {/* <Route path="/search" element={<Search />} /> */}
         <Route path="/notifications" element={<Notifications />} />
         {/* <Route path="/messages" element={<Messages />} /> */}
         <Route path="/conversation/:sender" element={<Conversation/>}/>
-        {/* <Route path="/bookmarks" element={<Bookmarks />} /> */}
         <Route path="/profile" element={<Profile />} />
         <Route path="/postTweet" element={<Tweet />} />
         <Route path="/profile/:userId" element={<UserProfile />} />
@@ -48,6 +47,8 @@ function App() {
         <Route path="/replies" element={<RepliesPage />} />
         <Route path="/likes" element={<LikesPage />} />
         <Route path="/search" element={<Search />} />
+        <Route path="/tweet/:tweetId/images/:imageNumber" element={<ImageViewer />} />
+        <Route path="/car" element={<CarouselView />} />
       </Routes>
     </BrowserRouter>
   );

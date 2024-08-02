@@ -25,7 +25,7 @@ const CommentView = () => {
     const [showPostCommentDialog, setShowPostCommentDialog] = useState(false);
     const [showPostCommentOnCommentDialog, setShowPostCommentOnCommentDialog] = useState(false);
     const [commentIdForDialog, setCommentIdForDialog] = useState(null);
-
+    const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
     const handleOpenCommentDialog = (id) => {
         setShowPostCommentOnCommentDialog(true);
         setCommentIdForDialog(id);
@@ -55,7 +55,22 @@ const CommentView = () => {
             fetchCommentComments();
         }
     }, [commentId]);
+    const [images, setImages] = useState([]);
 
+    const imageFetch = async (path) => {
+        const url = `${seaweedUrl}${path}`
+        const accessToken = localStorage.getItem('access_token');
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            responseType: 'blob'
+        };
+        const response = await axios.get(url, config);
+        return URL.createObjectURL(response.data)
+    }
+    
     const fetchCommentData = async (commentId) => {
         try {
             const accessToken = localStorage.getItem('access_token');
@@ -69,6 +84,12 @@ const CommentView = () => {
 
             const data = response.data;
             setComment(data);
+            var images = [];
+            for (const url of data.image_urls) {
+                var img = await imageFetch(url);
+                images.push(img);
+            }
+            setImages(images);
             
             // setIsLiked(data.likes.some(like => like.user_id === localStorage.getItem('user_id')));
             // setIsRetweeted(data.retweets.some(retweet => retweet.user_id === localStorage.getItem('user_id')));
@@ -77,6 +98,7 @@ const CommentView = () => {
         }
     };
 
+    const [commentsImages, setCommentsImages] = useState([])
     const fetchCommentComments = async () => {
        
        try { 
@@ -89,6 +111,16 @@ const CommentView = () => {
                 withCredentials: true
             });
             setComments(response.data.comments);
+            var commentsImages = [];
+            for (const comment of response.data.comments) {
+                console.log(comment);
+                for (const url of comment.image_urls) {
+                    var img = await imageFetch(url);
+                    commentsImages.push(img);
+                }
+                console.log(commentsImages)
+                setCommentsImages(commentsImages);
+            }
         } catch (error) {
             console.error(error);
         }
@@ -251,7 +283,7 @@ const CommentView = () => {
     return (
         <Container fluid  style={{position:"relative"}}>
             <Row>
-                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
+                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto", borderRight:"1px solid black"}}>
                     <Menu />
                 </Col>
                 <Col xs={{span:9, offset:2}}>

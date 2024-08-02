@@ -2,23 +2,13 @@ import axios from "axios";
 
 let refresh = false;
 const apiUrl = process.env.REACT_APP_API_URL;
-    console.log(apiUrl)
+    
 axios.create({
     baseURL: `${apiUrl}`,
     headers: {'Content-Type': 'application/json'},
     withCredentials: true
 });
 
-// axios.interceptors.request.use(
-//   config => {
-//     const token = localStorage.getItem('access_token');
-//     if (token) {
-//       config.headers.Authorization = `Bearer ${token}`;
-//     }
-//     return config;
-//   },
-//   error => Promise.reject(error)
-// );
 axios.interceptors.response.use(resp => resp, async error => {
   if (error.response.status === 401 && !refresh) {
      refresh = true;

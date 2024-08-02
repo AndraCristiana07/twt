@@ -8,7 +8,8 @@ export const RetweetTweet = ({show, handleClose, tweetId}) => {
     const [content, setContent] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(null)
-
+    const [files, setFiles] = useState([])
+    const [previews, setPreviews] = useState([]);
     // const handleTweetChange = (e) => {
     //     setTweet(e.target.value);
     // }
@@ -38,21 +39,32 @@ export const RetweetTweet = ({show, handleClose, tweetId}) => {
                     },
                     withCredentials: true
                 });
-    
+                
+                setSuccess("Retweet posted successfully!");
                 // setTweets(tweets.map(tweet =>
                 //     tweet.id === tweetId ? { ...tweet, retweets: tweet.retweets + 1, isRetweeted: true } : tweet
                 // ));
             } catch (error) {
                 console.log(error);
+                setError("Failed to post quote retweet");
             }
         // };
     };
 
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        
+        setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+        const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prevPreviews => [...prevPreviews, ...previewUrls]);
+    }
+
+
 
     return (
-        <Modal show={show} onHide={handleClose}>
+        <Modal show={show} onHide={handleClose} onClick={(e) => e.stopPropagation()}>
             <Modal.Header closeButton>
-                <Modal.Title>Post a Tweet</Modal.Title>
+                <Modal.Title>Post a Quote Retweet</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
@@ -68,11 +80,36 @@ export const RetweetTweet = ({show, handleClose, tweetId}) => {
                     </Form.Group>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>{success}</p>}
-                    <img src={media} alt="media" title="media content" style={{width:"4vw", height:"4vh"}}/>
+                    <div style={{position:"relative", width: '4vw', height: '4vh' }}>
+                        <input  
+                        onChange={handleFileChange}
+                        type="file" multiple  
+                        style={{
+                            position: 'absolute',
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            zIndex: 2,
+                            cursor: 'pointer'
+                        }} />
+                        <img src={media} alt="media" title="media content" 
+                            style={{
+                            width: '100%', 
+                            height: '100%', 
+                            position: 'absolute',
+                            zIndex: 1
+                        }} />
+
+                    </div>
                     <Button variant="primary" type="submit">
-                        Post Tweet
+                        Post Quote Retweet
                     </Button>
                 </Form>
+                <div>
+                    {previews.map((preview, index) => (
+                        <img key={index} src={preview} alt="preview" style={{ width: '100px', height: '100px', margin: '10px' }} />
+                    ))}
+                </div>
             </Modal.Body>
         </Modal>
     )

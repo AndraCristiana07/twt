@@ -9,7 +9,8 @@ export const Tweet = ({show, handleClose}) => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(null)
     const [files, setFiles] = useState([]);
-  
+    const [previews, setPreviews] = useState([]);
+
     const apiUrl = process.env.REACT_APP_API_URL
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -29,12 +30,8 @@ export const Tweet = ({show, handleClose}) => {
                 formdata.append(`images`, files[i]);
             }
             const response = await axios.post(`${apiUrl}/tweets/post`, 
-                // { 
-                //     content: content,
-                //     images: files
-                // }, 
+              
                 formdata,
-                // {images:images},
              {
                 headers: {
                     "Content-Type": "multipart/form-data",
@@ -54,6 +51,14 @@ export const Tweet = ({show, handleClose}) => {
             }
         }
     };
+
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        
+        setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+        const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prevPreviews => [...prevPreviews, ...previewUrls]);
+    }
 
 
     return (
@@ -77,7 +82,10 @@ export const Tweet = ({show, handleClose}) => {
                     {success && <p style={{ color: 'green' }}>{success}</p>}
                     {/* <img src={media} alt="media" title="media content" style={{width:"4vw", height:"4vh"}}/> */}
                     <div style={{position:"relative", width: '4vw', height: '4vh' }}>
-                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
+                        <input  
+                        // onChange={(e)=> {setFiles(e.target.files)}} 
+                        type="file" multiple  
+                        onChange={handleFileChange}
                         style={{
                             position: 'absolute',
                             width: '100%',
@@ -99,6 +107,11 @@ export const Tweet = ({show, handleClose}) => {
                         Post Tweet
                     </Button>
                 </Form>
+                <div>
+                    {previews.map((preview, index) => (
+                        <img key={index} src={preview} alt="preview" style={{ width: '100px', height: '100px', margin: '10px' }} />
+                    ))}
+                </div>
             </Modal.Body>
         </Modal>
     )

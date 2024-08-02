@@ -239,7 +239,7 @@ export const RepliesPage = () => {
     return (
         <Container fluid className="mt-5 text-center" style={{position:"relative"}}>
             <Row>
-                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
+                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto", borderRight:"1px solid black"}}>
                     <Menu />
                 </Col>
                 <Col xs={{span:9, offset:2}}>

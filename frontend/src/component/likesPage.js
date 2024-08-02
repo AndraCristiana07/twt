@@ -27,11 +27,13 @@ export const LikesPage = () => {
     const [followers, setFollowers] = useState([]);
     const [following, setFollowing] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false); 
+    const [loading, setLoading] = useState(false)
 
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
 
     useEffect(() => {
+        setLoading(true)
         if (localStorage.getItem('access_token') === null) {
             window.location.href = '/login';
         } else {
@@ -91,6 +93,7 @@ export const LikesPage = () => {
             } else {
                 console.error('Response data structure is unexpected:', response.data);
             }
+            setLoading(false);
         } catch (error) {
             console.error(error);
             if (error.response && error.response.status === 401) {
@@ -238,7 +241,7 @@ export const LikesPage = () => {
     return (
         <Container fluid className="mt-5 text-center" style={{position:"relative"}}>
             <Row>
-                <Col  xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
+                <Col  xs={2} style={{position:"fixed", height:"100vh", overflow:"auto", borderRight:"1px solid black"}}>
                     <Menu />
                 </Col>
                 <Col xs={{span:9, offset:2}}>
@@ -307,60 +310,65 @@ export const LikesPage = () => {
                             </Col>
                         </Row>
                     </Container>
+                    {loading ? <p> Loading... </p> : (
+                        <div>
 
-                    {tweets.length > 0 ? (
-                        tweets.map(tweet => (
-                            <div>
-                                {tweet.unavailable ? (
-                                    <Card key={tweet.id} className="mb-4 tweet-card">
-                                    <Card.Body>
-                                        <Card.Text>Tweet unavailable</Card.Text>
-                                    </Card.Body>
-                                </Card>
-                                ) : (
-                                <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => navigate(`/tweet/${tweet.id}`)}>
-                                    <Card.Body>
-                                        <Container fluid>
-                                            <Row>
-                                                <Col xs={7}>
-                                                    <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
-                                                        {tweet.user_id} @{tweet.username}
-                                                    </Card.Title>
-                                                </Col>
-                                                {/* <Col xs={2}>
-                                                    <img src={deleteImg} style={{ width: "30px" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }}></img>
-                                                </Col>
-                                                <DeleteDialog show={showDeleteDialog} handleClose={handleCloseDeleteDialog} handleDelete={handleDeleteTweet} /> */}
-                                            </Row>
-                                        </Container>
-                                        <Card.Text>{tweet.content}</Card.Text>
-                                        <Card.Subtitle className="text-muted">
-                                            Created at: {new Date(tweet.created_at).toLocaleString()}
-                                        </Card.Subtitle>
-                                    </Card.Body>
-                                    <Row>
-                                        <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}>
-                                            <img src={comment} alt="Comment" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
-                                        </Button>
-                                        <Button className="btn" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id) : handleLike(tweet.id, tweet.like_id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                                            <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
-                                        </Button>
-                                        <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
-                                            <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
-                                        </Button>
-                                    </Row>
-                                    <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.id} />
-                                </Card>
-                                )}
+                        {tweets.length > 0 ? (
+                            tweets.map(tweet => (
+                                <div>
+                                    {tweet.unavailable ? (
+                                        <Card key={tweet.id} className="mb-4 tweet-card">
+                                        <Card.Body>
+                                            <Card.Text>Tweet unavailable</Card.Text>
+                                        </Card.Body>
+                                    </Card>
+                                    ) : (
+                                    <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => navigate(`/tweet/${tweet.id}`)}>
+                                        <Card.Body>
+                                            <Container fluid>
+                                                <Row>
+                                                    <Col xs={7}>
+                                                        <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
+                                                            {tweet.user_id} @{tweet.username}
+                                                        </Card.Title>
+                                                    </Col>
+                                                    {/* <Col xs={2}>
+                                                        <img src={deleteImg} style={{ width: "30px" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }}></img>
+                                                    </Col>
+                                                    <DeleteDialog show={showDeleteDialog} handleClose={handleCloseDeleteDialog} handleDelete={handleDeleteTweet} /> */}
+                                                </Row>
+                                            </Container>
+                                            <Card.Text>{tweet.content}</Card.Text>
+                                            <Card.Subtitle className="text-muted">
+                                                Created at: {new Date(tweet.created_at).toLocaleString()}
+                                            </Card.Subtitle>
+                                        </Card.Body>
+                                        <Row>
+                                            <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}>
+                                                <img src={comment} alt="Comment" width={"20px"} />
+                                                <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
+                                            </Button>
+                                            <Button className="btn" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id) : handleLike(tweet.id, tweet.like_id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                                                <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
+                                                <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
+                                            </Button>
+                                            <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
+                                                <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
+                                                <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
+                                            </Button>
+                                        </Row>
+                                        <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.id} />
+                                    </Card>
+                                    )}
 
-                            </div>
+                                </div>
 
-                        ))
-                    ) : (
-                        <p>No tweets available.</p>
+                            ))
+                        ) : (
+                            <p>No tweets available.</p>
+                        )}
+                        </div>
+
                     )}
                 </Col>
             </Row>

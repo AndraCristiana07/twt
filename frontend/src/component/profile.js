@@ -26,11 +26,13 @@ export const Profile = () => {
     const [followers, setFollowers] = useState([]);
     const [following, setFollowing] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false); 
-
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
+    const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
 
     useEffect(() => {
+        setLoading(true)
         if (localStorage.getItem('access_token') === null) {
             window.location.href = '/login';
         } else {
@@ -53,6 +55,7 @@ export const Profile = () => {
                 withCredentials: true
             });
             setFollowers(response.data);
+            // setLoading(false);
             // setIsFollowing(isFollowing);
         } catch (error) {
             console.error('Error fetching followers:', error);
@@ -70,6 +73,7 @@ export const Profile = () => {
                 withCredentials: true
             });
             setFollowing(response.data);
+            // setLoading(false);
         } catch (error) {
             console.error('Error fetching following:', error);
         }
@@ -89,6 +93,16 @@ export const Profile = () => {
             const tweets = responseTweets.data.tweets;
            
             setTweets(tweets);
+            var images = [];
+            for(const tweet of tweets){
+                for (const url of tweet.image_urls) {
+                    var img = await imageFetch(url);
+                    images.push(img);
+                }
+                setImages(images);
+            }
+            
+            setLoading(false);
           
         } catch (error) {
             console.error(error);
@@ -97,37 +111,11 @@ export const Profile = () => {
             }
         }
     };
-
-
-    const fetchTweetData = async (tweetId) => { 
-        try {
-            const accessToken = localStorage.getItem('access_token');
-            const response = await axios.get(`${apiUrl}/tweets/get_tweet/${tweetId}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            const tweet = response.data;
-            if (tweet == null) {
-                return {unavailable: true};
-            }
-            const userResponse = await axios.get(`${apiUrl}/get_specific_user/${tweet.user_id}`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                withCredentials: true
-            });
-            tweet.username = userResponse.data.username;
-           
-            return tweet;
-        } catch (error) {
-            console.error('Error fetching tweet data:', error);
-            return null;
-        }
-    };
+    const handleImageNav = (tweet, index) => {
+        console.log(tweet.image_urls)
+        console.log(tweet.image_urls[index])
+        navigate(`/tweet/${tweet.id}/images/${index}`);
+    }
 
     const handleLike = async (tweetId) => {
         try {
@@ -226,10 +214,6 @@ export const Profile = () => {
         }
     };
 
-    const countLikes = (tweet) => tweet.likes ? tweet.likes.length : 0;
-    const countRetweets = (tweet) => tweet.retweets ? tweet.retweets.length : 0;
-    const countComments = (tweet) => tweet.comments ? tweet.comments.length : 0;
-
     const handleOpenDeleteDialog = (tweetId) => {
         setTweetIdToDelete(tweetId);
         setShowDeleteDialog(true);
@@ -248,10 +232,29 @@ export const Profile = () => {
         setShowPostCommentDialog(false);
     };
 
+    const imageFetch = async (path) => {
+        const url = `${seaweedUrl}${path}`
+        const accessToken = localStorage.getItem('access_token');
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            responseType: 'blob'
+        };
+        const response = await axios.get(url, config);
+        return URL.createObjectURL(response.data)
+    }
+   
+
+    const [images, setImages] = useState([])
+
+   
+
     return (
         <Container fluid className="mt-5 text-center"  style={{position:"relative"}}>
             <Row >
-                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
+                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto", borderRight:"1px solid black"}}>
                     <Menu />
                 </Col>
 
@@ -266,7 +269,7 @@ export const Profile = () => {
                                 <h4> {username}</h4>
                             </Col>
                         </Row>
-                        <Row >
+                        <Row style={{marginTop: "10vh"}} >
                             <Col xs={8}>
                                 <img src="" alt="twt header" style={{ width: "200px", marginTop:"100px" }} />
                             </Col>
@@ -322,62 +325,25 @@ export const Profile = () => {
                             </Col>
                         </Row>
                     </Container>
+                    {loading ? <p> Loading... </p> : (
+                        <div>
 
-                    {tweets.length > 0 ? (
-                        tweets.map(tweet => (
-                            <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => navigate(`/tweet/${tweet.id}`)}>
-                                {tweet.retweet_id !== null && (
-                                    <Card.Body>
-                                    <Container fluid>
-                                        <Row>
-                                            <Col xs={10}>
-                                            <img src={retweet} alt='Retweet' style={{width:"2vw"}}/>
-                                            <p>{tweet.username} has retweeted</p>
-                                            </Col>
-                                        </Row>
-                                        {tweet.content === "" && (
-                                            <Container fluid>
-                                                <Row>
-                                                    
-                                                    <Col xs={6}>
-                                                        <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
-                                                            {tweet.original_tweet.user_id} @{tweet.original_tweet.username}
-                                                        </Card.Title>
-                                                    </Col>
-                                                </Row>
-                                                <Row>
-                                                    <Card.Text>
-                                                        {tweet.original_tweet.content}
-                                                    </Card.Text>
-                                                </Row>
-                                                <Row>
-                                                    <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={handleOpenDialog}>
-                                                        <img src={comment} alt="Comment" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.comments}</span>
-                                                    </Button>
-                                                    <Button className="but" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.original_tweet.id, tweet.original_tweet.like_id) : handleLike(tweet.original_tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                                                        <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.likes}</span>
-                                                    </Button>
-                                                    <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.original_tweet.id, tweet.original_tweet.retweet_id) : handleRetweet(tweet.original_tweet.id); }}>
-                                                        <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.retweets}</span>
-                                                    </Button>
-                                                </Row>
-                                                <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.original_tweet.id} />
-                                        
-                                                
-                                            </Container>
-                                        )}
-                                        {tweet.content !== "" && (
-                                            <div>
-                                                <Row>
-                                                    <Col> {tweet.content}
-                                                    </Col>
-                                                </Row>
-                                                <Card>
+                        {tweets.length > 0 ? (
+                            tweets.map(tweet => (
+                                <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => navigate(`/tweet/${tweet.id}`)}>
+                                    {tweet.retweet_id !== null && (
+                                        <Card.Body>
+                                        <Container fluid>
+                                            <Row>
+                                                <Col xs={10}>
+                                                <img src={retweet} alt='Retweet' style={{width:"2vw"}}/>
+                                                <p>{tweet.username} has retweeted</p>
+                                                </Col>
+                                            </Row>
+                                            {(!tweet.content && !tweet.image_urls) && (
+                                                <Container fluid>
                                                     <Row>
-                                                        <Col></Col>
+                                                        
                                                         <Col xs={6}>
                                                             <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
                                                                 {tweet.original_tweet.user_id} @{tweet.original_tweet.username}
@@ -390,78 +356,157 @@ export const Profile = () => {
                                                         </Card.Text>
                                                     </Row>
                                                     <Row>
-                                                        <Card.Subtitle className="text-muted">
-                                                            Created at: {new Date(tweet.created_at).toLocaleString()}
-                                                        </Card.Subtitle>
+                                                        {tweet.original_tweet.image_urls && (
+                                                            <div className="image-grid" data-count={tweet.original_tweet.image_urls.length}>
+                                                            {tweet.original_tweet.image_urls.map((image, index) => (
+                                                                <img key={index} src={images[index]} alt="tweet image" className="grid-image" 
+                                                                onClick={(e) => {e.stopPropagation(); console.log(`selected image ${index}`); handleImageNav(tweet, index)}}
+                                                                />
+                                                            ))}
+                                                            </div>
+                                                        )}
+                                                        </Row>
+                                                    <Row>
+                                                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={handleOpenDialog}>
+                                                            <img src={comment} alt="Comment" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.comments}</span>
+                                                        </Button>
+                                                        <Button className="but" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.original_tweet.id, tweet.original_tweet.like_id) : handleLike(tweet.original_tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                                                            <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.likes}</span>
+                                                        </Button>
+                                                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.original_tweet.id, tweet.original_tweet.retweet_id) : handleRetweet(tweet.original_tweet.id); }}>
+                                                            <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.original_tweet.retweets}</span>
+                                                        </Button>
                                                     </Row>
-                                                    
-                                                </Card>
-                                                <Row>
-                                                    <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={handleOpenDialog}>
-                                                        <img src={comment} alt="Comment" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
-                                                    </Button>
-                                                    <Button className="but" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id, tweet.like_id) : handleLike(tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                                                        <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
-                                                    </Button>
-                                                    <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
-                                                        <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
-                                                    </Button>
-                                                </Row>
-                                                <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.id} />
+                                                    <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.original_tweet.id} />
                                             
-                                            </div>
+                                                    
+                                                </Container>
+                                            )}
+                                            {(tweet.content !== "" || tweet.image_urls) && (
+                                                <div>
+                                                    <Row>
+                                                        <Col> {tweet.content}
+                                                        </Col>
+                                                    </Row>
+                                                    <Card>
+                                                        <Row>
+                                                            <Col></Col>
+                                                            <Col xs={6}>
+                                                                <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
+                                                                    {tweet.original_tweet.user_id} @{tweet.original_tweet.username}
+                                                                </Card.Title>
+                                                            </Col>
+                                                        </Row>
+                                                        <Row>
+                                                            <Card.Text>
+                                                                {tweet.original_tweet.content}
+                                                            </Card.Text>
+                                                        </Row>
+                                                        <Row>
+                                                            {tweet.image_urls && (
+                                                                <div className="image-grid" data-count={tweet.image_urls.length}>
+                                                                    {tweet.image_urls.map((image, index) => (
+                                                                        <img key={index} src={images[index]} alt="tweet image" className="grid-image" 
+                                                                        // onClick={(e) => {e.stopPropagation(); setShowModal(true); setModalIndex(index);}}
+                                                                        onClick={(e) => {e.stopPropagation(); console.log(index); handleImageNav(tweet, index)}}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </Row>
+                                                        <Row>
+                                                            <Card.Subtitle className="text-muted">
+                                                                Created at: {new Date(tweet.created_at).toLocaleString()}
+                                                            </Card.Subtitle>
+                                                        </Row>
+                                                        
+                                                    </Card>
+                                                    <Row>
+                                                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={handleOpenDialog}>
+                                                            <img src={comment} alt="Comment" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
+                                                        </Button>
+                                                        <Button className="but" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id, tweet.like_id) : handleLike(tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                                                            <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
+                                                        </Button>
+                                                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
+                                                            <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
+                                                            <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
+                                                        </Button>
+                                                    </Row>
+                                                
+                                                </div>
 
-                                        )}
-                                    </Container>
-                                </Card.Body>
-                                
-                                )}
-                                {tweet.retweet_id === null && (
-                                    <div>
 
-                                        <Card.Body>
-                                            <Container fluid>
-                                                <Row>
-                                                    <Col xs={7}>
-                                                        <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
-                                                            {tweet.user_id} @{tweet.username}
-                                                        </Card.Title>
-                                                    </Col>
-                                                    <Col xs={2}>
-                                                        <img src={deleteImg} style={{ width: "30px" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }}></img>
-                                                    </Col>
-                                                    <DeleteDialog show={showDeleteDialog} handleClose={handleCloseDeleteDialog} handleDelete={handleDeleteTweet} />
-                                                </Row>
-                                            </Container>
-                                            <Card.Text>{tweet.content}</Card.Text>
-                                            <Card.Subtitle className="text-muted">
-                                                Created at: {new Date(tweet.created_at).toLocaleString()}
-                                            </Card.Subtitle>
-                                        </Card.Body>
-                                        <Row>
-                                            <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}>
-                                                <img src={comment} alt="Comment" width={"20px"} />
-                                                <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
-                                            </Button>
-                                            <Button className="btn" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id, tweet.like_id) : handleLike(tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                                                <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                                <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
-                                            </Button>
-                                            <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
-                                                <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
-                                                <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
-                                            </Button>
-                                        </Row>
+                                            )}
+                                        </Container>
                                         <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.id} />
-                                    </div>
-                            )}
-                                </Card>
-                        ))
-                    ) : (
-                        <p>No tweets available.</p>
+
+                                    </Card.Body>
+                                    
+                                    )}
+                                    {tweet.retweet_id === null && (
+                                        <div>
+
+                                            <Card.Body>
+                                                <Container fluid>
+                                                    <Row>
+                                                        <Col xs={7}>
+                                                            <Card.Title onClick={(e) => { e.stopPropagation(); navigate(`/profile/${tweet.user_id}`) }}>
+                                                                {tweet.user_id} @{tweet.username}
+                                                            </Card.Title>
+                                                        </Col>
+                                                        <Col xs={2}>
+                                                            <img src={deleteImg} style={{ width: "30px" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }}></img>
+                                                        </Col>
+                                                    </Row>
+                                                </Container>
+                                                <Card.Text>{tweet.content}</Card.Text>
+                                                <Row>
+                                                    {tweet.image_urls && (
+                                                        <div className="image-grid" data-count={tweet.image_urls.length}>
+                                                            {tweet.image_urls.map((image, index) => (
+                                                                <img key={index} src={images[index]} alt="tweet image" className="grid-image"
+                                                                //  onClick={(e) => {e.stopPropagation(); setShowModal(true); setModalIndex(index);}}
+                                                                onClick={(e) => {e.stopPropagation(); console.log(index); handleImageNav(tweet, index)}}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </Row>
+                                                <Card.Subtitle className="text-muted">
+                                                    Created at: {new Date(tweet.created_at).toLocaleString()}
+                                                </Card.Subtitle>
+                                            </Card.Body>
+                                            <Row>
+                                                <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}>
+                                                    <img src={comment} alt="Comment" width={"20px"} />
+                                                    <span style={{ color: "black" }} className="ms-1">{tweet.comments}</span>
+                                                </Button>
+                                                <Button className="btn" onClick={(e) => { e.stopPropagation(); tweet.isLiked ? handleUnlike(tweet.id, tweet.like_id) : handleLike(tweet.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                                                    <img src={tweet.isLiked ? heartred : heart} alt="Like" width={"20px"} />
+                                                    <span style={{ color: "black" }} className="ms-1">{tweet.likes}</span>
+                                                </Button>
+                                                <Button className="btn" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); tweet.isRetweeted ? handleUnretweet(tweet.id, tweet.retweet_id) : handleRetweet(tweet.id); }}>
+                                                    <img src={tweet.isRetweeted ? retweetred : retweet} alt="Retweet" width={"20px"} />
+                                                    <span style={{ color: "black" }} className="ms-1">{tweet.retweets}</span>
+                                                </Button>
+                                            </Row>
+                                        </div>
+                                )}
+                                    <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={tweet.id} />
+                                    <DeleteDialog show={showDeleteDialog} handleClose={handleCloseDeleteDialog} handleDelete={handleDeleteTweet} />
+
+                                    </Card>
+                            ))
+                        ) : (
+                            <p>No tweets available.</p>
+                        )}
+                        </div>
                     )}
                     
                 </Col>

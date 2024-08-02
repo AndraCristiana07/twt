@@ -6,13 +6,17 @@ import axios from 'axios';
 import media from '../assets/media.svg';
 import { TweetCard } from "./tweetCard";
 import { useNavigate } from "react-router-dom";
-
 export const FollowingTimeline = () => {
     const [tweets, setTweets] = useState([]);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState(null)
+    const [loading, setLoading] = useState(false)
     const navigate = useNavigate();
     const apiUrl = process.env.REACT_APP_API_URL;
 
     useEffect(() => {
+        setLoading(true);
+
         if (localStorage.getItem('access_token') === null) {
             window.location.href = '/login';
         } else {
@@ -32,6 +36,8 @@ export const FollowingTimeline = () => {
             });
 
             setTweets(response.data.tweets)
+            setLoading(false);
+            
         } catch (error) {
             console.log(error);
             if (error.response && error.response.status === 401) {
@@ -127,6 +133,7 @@ export const FollowingTimeline = () => {
 
     const [content, setContent] = useState("");
     const [files, setFiles] = useState([])
+    const [previews, setPreviews] = useState([]);
     const handleTweetPost = async (e) => {
         e.preventDefault();
         try {
@@ -149,19 +156,28 @@ export const FollowingTimeline = () => {
                     withCredentials: true
                 }
             );
-
+            setSuccess("Tweet posted successfully!");
             // setTweets([response.data, ...tweets]);
             // setContent("");
         } catch (error) {
+            setError("Failed to post tweet.");
             console.error('Error posting tweet:', error);
         }
+    };
+
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        
+        setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+        const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prevPreviews => [...prevPreviews, ...previewUrls]);
     };
 
     
     return (
         <Container fluid style={{position:"relative"}}>
-            <Row>
-                <Col xs={2} style={{position:"fixed", height:"100vh", overflow:"auto"}}>
+            
+                <Col  xs={2} style={{position:"fixed", height:"100vh", overflow:"auto", borderRight:"1px solid black"}}>
                     <Menu />
                 </Col>
                 <Col xs={{span:9, offset:2}}>
@@ -180,15 +196,18 @@ export const FollowingTimeline = () => {
                                     />
                                     </Form.Group>
                                     <div style={{position:"relative", width: '4vw', height: '4vh' }}>
-                                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
-                                        style={{
-                                            position: 'absolute',
-                                            width: '100%',
-                                            height: '100%',
-                                            opacity: 0,
-                                            zIndex: 2,
-                                            cursor: 'pointer'
-                                        }} />
+                                        <input  
+                                            // onChange={(e)=> {setFiles(URL.createObjectURL(e.target.files))}} 
+                                            onChange={handleFileChange}
+                                            type="file" multiple  
+                                            style={{
+                                                position: 'absolute',
+                                                width: '100%',
+                                                height: '100%',
+                                                opacity: 0,
+                                                zIndex: 2,
+                                                cursor: 'pointer'
+                                            }} />
                                         <img src={media} alt="media" title="media content" 
                                          style={{
                                             width: '100%', 
@@ -202,28 +221,40 @@ export const FollowingTimeline = () => {
                                     <Button variant="primary" type="submit">
                                         Post Tweet
                                     </Button>
+                                    {error && <p style={{ color: 'red' }}>{error}</p>}
+                                    {success && <p style={{ color: 'green' }}>{success}</p>}
                                 </Form>
+                                <div>
+                                    {previews.map((preview, index) => (
+                                        <img key={index} src={preview} alt="preview" style={{ width: '100px', height: '100px', margin: '10px' }} />
+                                    ))}
+                                </div>
                             </Card.Body>
                         </Card>
                     </Container>
                     <Container  className="container mt-5 text-center">
-                        {Array.isArray(tweets) && tweets.length > 0 ? (
-                            tweets.map(tweet => (
-                                <TweetCard 
-                                    key={tweet.id} 
-                                    tweet={tweet}
-                                    handleLike={handleLike}
-                                    handleUnlike={handleUnlike}
-                                    handleRetweet={handleRetweet}
-                                    handleUnretweet={handleUnretweet}
-                                />
-                            ))
-                        ) : (
-                            <p>No tweets available.</p>
+                        {loading ? <p> Loading... </p> : (
+                            <div>
+                                {Array.isArray(tweets) && tweets.length > 0 ? (
+                                    tweets.map(tweet => (
+                                        
+                                        <TweetCard 
+                                            key={tweet.id} 
+                                            tweet={tweet}
+                                            handleLike={handleLike}
+                                            handleUnlike={handleUnlike}
+                                            handleRetweet={handleRetweet}
+                                            handleUnretweet={handleUnretweet}
+                                        />
+                                    ))
+                                ) : (
+                                    <p>No tweets available.</p>
+                                )}
+                            </div>
                         )}
                     </Container>
                 </Col>
-            </Row>
+           
         </Container>
     );
 };

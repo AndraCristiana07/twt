@@ -13,6 +13,7 @@ export const CommentOnComment = ({show, handleClose, commentId}) => {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [files, setFiles] = useState([]);
+    const [previews, setPreviews] = useState([]);
 
 
     const handleSubmiit = async (e) => {
@@ -53,6 +54,13 @@ export const CommentOnComment = ({show, handleClose, commentId}) => {
     const handleModalClick = (e) => {
         e.stopPropagation();
     };
+    const handleFileChange = (e) => {
+        const selectedFiles = Array.from(e.target.files);
+        
+        setFiles(prevFiles => [...prevFiles, ...selectedFiles]);
+        const previewUrls = selectedFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prevPreviews => [...prevPreviews, ...previewUrls]);
+    }
 
     return (
         <Modal show={show} onHide={handleClose} onClick={handleModalClick}>
@@ -73,7 +81,9 @@ export const CommentOnComment = ({show, handleClose, commentId}) => {
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>{success}</p>}
                     <div style={{position:"relative", width: '4vw', height: '4vh' }}>
-                        <input  onChange={(e)=> {setFiles(e.target.files)}} type="file" multiple  
+                        <input  
+                        onChange={handleFileChange}
+                        type="file" multiple  
                         style={{
                             position: 'absolute',
                             width: '100%',
@@ -95,6 +105,11 @@ export const CommentOnComment = ({show, handleClose, commentId}) => {
                         Post Comment
                     </Button>
                 </Form>
+                <div>
+                    {previews.map((preview, index) => (
+                        <img key={index} src={preview} alt="preview" style={{ width: '100px', height: '100px', margin: '10px' }} />
+                    ))}
+                </div>
             </Modal.Body>
         </Modal>
     )
