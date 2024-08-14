@@ -45,8 +45,6 @@ def init_cassandra():
         )
     """)
 
-def create_likes_table():
-    session = get_session()
     session.execute("""
     CREATE TABLE IF NOT EXISTS twitter.likes (
         id UUID PRIMARY KEY,
@@ -56,8 +54,6 @@ def create_likes_table():
     )
     """)
 
-def create_comments_table():
-    session = get_session()
     session.execute("""
     CREATE TABLE IF NOT EXISTS twitter.comments (
         id UUID PRIMARY KEY,
@@ -74,18 +70,4 @@ def create_comments_table():
     """)
 
 
-def wait_for_cassandra():
-    print("Waiting on Cassandra")
-    while True:
-        try:
-            get_session()
-            print("Cassandra is up!")
-            break
-        except NoHostAvailable as e:
-            print(e)
-        time.sleep(25)
-
-wait_for_cassandra()
 init_cassandra()
-create_likes_table()
-create_comments_table()

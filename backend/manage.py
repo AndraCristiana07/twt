@@ -30,10 +30,11 @@
 import os
 import sys
 
+import app.kafka_consumer
 
-import logging
-logger = logging.getLogger(__name__)
-logger.info('something here')
+# import logging
+# logger = logging.getLogger(__name__)
+# logger.info('something here')
 
 def main():
     """Run administrative tasks."""

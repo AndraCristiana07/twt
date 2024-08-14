@@ -13,6 +13,7 @@ class UserDocument(Document):
         }
 
     class Django:
+        # ignore_signals = True
         model = User
         fields = [
             'id',

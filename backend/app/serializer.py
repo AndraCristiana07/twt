@@ -12,11 +12,16 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-       
+    
+    def update(self, instance, validated_data):
+        instance.profile_image = validated_data.get('profile_image', instance.profile_image)
+        instance.header_image = validated_data.get('header_image', instance.header_image)
+        instance.save()
+        return instance
 
     class Meta:
         model = User
-        fields = ('id','username', 'name', 'email', 'password')  
+        fields = ('id','username', 'name', 'email', 'password', 'profile_image', 'header_image')  
 
 class FollowerSerializer(serializers.ModelSerializer):
     class Meta:

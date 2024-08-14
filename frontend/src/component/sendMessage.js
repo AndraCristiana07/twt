@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axiosInstance from "../../interceptor/axiosInstance";
 
 export const SendMessage = () => {
     const [receiverId, setReceiverId] = useState("");
@@ -11,7 +11,7 @@ export const SendMessage = () => {
         e.preventDefault();
         try {
             const accessToken = localStorage.getItem('access_token');
-            const response = await axios.post(`{apiUrl}/messages/send`, {
+            const response = await axiosInstance.post(`{apiUrl}/messages/send`, {
                 receiver_id: receiverId,
                 content: content
             }, {

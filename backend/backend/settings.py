@@ -43,12 +43,20 @@ INSTALLED_APPS = [
     'drf_spectacular',
     "django_elasticsearch_dsl",
     "corsheaders",
+    "channels",
     "rest_framework",
+    'rest_framework_simplejwt',
     "rest_framework_simplejwt.token_blacklist",
     "app",
     "tweets",
     "backend",
 ]
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -93,11 +101,13 @@ DATABASES = {
 }
 
 ELASTICSEARCH_DSL = {
-    "default": {"hosts": "http://elasticsearch:9200"},
+    "default": {"hosts": "http://elasticsearch:9200", 
+                'http_auth': ('elastic', 'changeme'),
+                'timeout': 100},
 }
 
 # KAFKA_BROKER_URL = 'kafka:9092'
-# KAFKA_NOTIFICATION_TOPIC = 'notifications'
+# KAFKA_NOTIFICATION_TOPIC = 'follow_notification'
 
 
 
@@ -188,8 +198,8 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=365, minutes=100),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1000),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,

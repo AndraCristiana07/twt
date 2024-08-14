@@ -12,20 +12,11 @@ from app.serializer import UserSerializer
 import logging
 import requests
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 logger = logging.getLogger(__name__)
 
 # Create your views here.
-
-class DebugView(APIView):
-    permission_classes = [AllowAny]
-    def __init__(self):
-        logger.debug(self.authentication_classes)
-        logger.debug(self.permission_classes)
-        pass
-
-    def post(self, request):
-        return Response(status=status.HTTP_200_OK)
 
 def is_valid_uuid(uuid_to_test, version=4):
     try:
@@ -66,11 +57,7 @@ class PostTweetView(APIView):
                 {"status": "fail", "message": "Content cannot be empty"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # if not images:
-        #      return Response(
-        #         {"status": "fail", "message": "images cannot be empty"},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
+        
 
         image_urls = []
         if images:            
@@ -98,12 +85,10 @@ class PostTweetView(APIView):
         file = {"file": image.file}
         response = requests.post(url, files=file)
         if response.status_code == 201:
-            # return response.json()["fileId"]
             return path
 
         else:
             return Exception("Failed to upload image to SeaweedFS")
-    
     
     
 class GetSingleTweetView(APIView):
@@ -111,36 +96,43 @@ class GetSingleTweetView(APIView):
     def get(self, request, tweet_id):
         user_id = str(request.user.id)
         session = get_session()
+
         tweet = session.execute(
             "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
-        )
+        ).one()
         
-        tweet = list(tweet)
-        # if not tweet:
-        # return Response({'status': 'fail', 'message': 'Tweet does not exist' }, status=status.HTTP_400_BAD_REQUEST)
-        tweet = tweet[0]
+        if not tweet:
+            return Response({'status': 'fail', 'message': 'Tweet does not exist' }, status=status.HTTP_400_BAD_REQUEST)
         
-        # if current user liked the tweet
         isLiked = session.execute(
             "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
             (tweet_id, user_id),
-        )
+        ).one()
+        
         isRetweeted = session.execute(
             "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
             (tweet_id, user_id),
-        )
+        ).one()
+        
         like = session.execute(
             "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
             (tweet_id, user_id),
         ).one()
         like_id = str(like.id) if like else None
+        
         retweet = session.execute(
             "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
             (tweet_id, user_id),
         ).one()
-        retweet_id = str(retweet.id) if retweet else None
+        delete_retweet_id = str(retweet.id) if retweet else None
         
-        username = request.user.username
+        try:
+            user = User.objects.get(id=tweet.user_id)
+        except User.DoesNotExist:
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserSerializer(user)
+        username = serializer.data['username']
         
         result = session.execute(
             "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
@@ -151,12 +143,34 @@ class GetSingleTweetView(APIView):
             original_tweet = session.execute(
                 "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
             ).one()
-            # username = original_tweet.user.username
-            # original_tweet_user_id = original_tweet.user_id
+            try:
+                user = User.objects.get(id=original_tweet.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = UserSerializer(user)
+            original_tweet_username = serializer.data['username']
             
-            
-            
-            
+            original_tweet_isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            )
+            original_tweet_isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            )
+            original_tweet_like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            ).one()
+            original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+            original_tweet_retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            ).one()
+            original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if retweet else None
+               
+
             return Response(
                 {
                     "id": str(tweet.id),
@@ -172,10 +186,23 @@ class GetSingleTweetView(APIView):
                     "isLiked": bool(isLiked),
                     "isRetweeted": bool(isRetweeted),
                     "like_id": like_id,
-                    "retweet_id": retweet_id,
-                    "original_tweet_id": [{"id": str(original_tweet_id), "user_id": original_tweet.user_id, "content": original_tweet.content, "image_urls": original_tweet.image_urls, "created_at": original_tweet.created_at}],
-                    
-                    
+                    "delete_retweet_id": delete_retweet_id,
+                    "original_tweet": {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content,
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_isLiked),
+                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "like_id": original_tweet_like_id,
+                        "delete_retweet_id": original_tweet_delete_retweet_id,
+                        "username": original_tweet_username,
+                    }
                 },
                 status=status.HTTP_200_OK,
             )
@@ -194,15 +221,11 @@ class GetSingleTweetView(APIView):
                 "username": username,
                 "isLiked": bool(isLiked),
                 "isRetweeted": bool(isRetweeted),
-                # "like": [{"id":str(l.id)} for l in like],
-                # "retweet": [{"id": str(r.id)} for r in retweet],
                 "like_id": like_id,
-                "retweet_id": retweet_id,
-               
+                "delete_retweet_id": delete_retweet_id,
             },
             status=status.HTTP_200_OK,
-        )
-
+        )    
 
 class GetSingleRetweetView(APIView):
     def get(self, request, retweet_id):
@@ -495,13 +518,45 @@ class PostCommentonComment(APIView):
 
 class GetCommentsView(APIView):
     def get(self, request, tweet_id):
+        user_id = str(request.user.id)
+        
         session = get_session()
         rows = session.execute(
             "SELECT * FROM twitter.comments WHERE tweet_id = %s ALLOW FILTERING",
             (tweet_id,),
         )
-        comments = [
-            {
+        # rows = list(rows)
+        comments = []
+        for row in rows:
+            comment_id = row.id
+            isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (comment_id, user_id),
+            )
+            isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (comment_id, user_id),
+            )
+            like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (comment_id, user_id),
+            ).one()
+            like_id = str(like.id) if like else None
+            retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (comment_id, user_id),
+            ).one()
+            delete_retweet_id = str(retweet.id) if retweet else None
+            
+            try:
+                user = User.objects.get(id=row.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = UserSerializer(user)
+            username = serializer.data['username']
+            
+            comment_details = {
                 "id": str(row.id),
                 "tweet_id": row.tweet_id,
                 "user_id": row.user_id,
@@ -511,69 +566,210 @@ class GetCommentsView(APIView):
                 "image_urls": row.image_urls,
                 "likes": row.likes,
                 "comments": row.comments,
-                "retweets": row.retweets
+                "retweets": row.retweets,
+                "username": username,
+                "isLiked": bool(isLiked),
+                "isRetweeted": bool(isRetweeted),
+                "like_id": like_id,
+                "delete_retweet_id": delete_retweet_id
             }
-            for row in rows
-        ]
+            comments.append(comment_details)
+     
         return Response({"comments": comments}, status=status.HTTP_200_OK)
 
 
+# class GetSingleCommentView(APIView):
+#     def get(self, request, comment_id):
+#         user_id = str(request.user.id)
+#         session = get_session()
+#         comment = session.execute(
+#             "SELECT * FROM twitter.comments WHERE id = %s ALLOW FILTERING",
+#             (comment_id,),
+#         )
+        
+#         comment = list(comment)
+#         if not comment:
+#             return Response(
+#                 {"status": "fail", "message": "Comment does not exist"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         comment = comment[0]
+#         isLiked = session.execute(
+#             "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#             (comment_id, user_id),
+#         )
+        
+#         isRetweeted = session.execute(
+#             "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#             (comment_id, user_id),
+#         )
+#         like_id = session.execute(
+#             "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#             (comment_id, user_id),
+#         ).id
+#         retweeted_id = session.execute(
+#             "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#             (comment_id, user_id),
+#         ).id
+
+      
+#         return Response(
+#             {
+#                 "id": str(comment.id),
+#                 "tweet_id": comment.tweet_id,
+#                 "user_id": comment.user_id,
+#                 "content": comment.content,
+#                 "created_at": comment.created_at,
+#                 "retweet_id": comment.retweet_id,
+#                 "image_urls": comment.image_urls,
+#                 "likes": comment.likes,
+#                 "comments": comment.comments,
+#                 "retweets": comment.retweets,
+#                 "isLiked": bool(isLiked),
+#                 "isRetweeted": bool(isRetweeted),
+#                 "like_id": like_id,
+#                 "retweeted_id": retweeted_id,
+               
+#             },
+#             status=status.HTTP_200_OK,
+#         )
+  
+    
 class GetSingleCommentView(APIView):
+
     def get(self, request, comment_id):
         user_id = str(request.user.id)
         session = get_session()
-        comment = session.execute(
-            "SELECT * FROM twitter.comments WHERE id = %s ALLOW FILTERING",
-            (comment_id,),
-        )
+
+        tweet = session.execute(
+            "SELECT * FROM twitter.comments WHERE id = %s ALLOW FILTERING", (comment_id,)
+        ).one()
         
-        comment = list(comment)
-        if not comment:
-            return Response(
-                {"status": "fail", "message": "Comment does not exist"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        comment = comment[0]
+        if not tweet:
+            return Response({'status': 'fail', 'message': 'Tweet does not exist' }, status=status.HTTP_400_BAD_REQUEST)
+        
         isLiked = session.execute(
             "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        )
+        ).one()
         
         isRetweeted = session.execute(
             "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        )
-        like_id = session.execute(
+        ).one()
+        
+        like = session.execute(
             "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        ).id
-        retweeted_id = session.execute(
+        ).one()
+        like_id = str(like.id) if like else None
+        
+        retweet = session.execute(
             "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        ).id
+        ).one()
+        delete_retweet_id = str(retweet.id) if retweet else None
+        
+        try:
+            user = User.objects.get(id=tweet.user_id)
+        except User.DoesNotExist:
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-      
+        serializer = UserSerializer(user)
+        username = serializer.data['username']
+        
+        result = session.execute(
+            "SELECT retweet_id FROM twitter.comments WHERE id = %s ALLOW FILTERING", (comment_id,)
+        ).one()
+        
+        if result is not None and result.retweet_id is not None:
+            original_tweet_id = result.retweet_id
+            original_tweet = session.execute(
+                "SELECT * FROM twitter.comments WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
+            ).one()
+            try:
+                user = User.objects.get(id=original_tweet.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = UserSerializer(user)
+            original_tweet_username = serializer.data['username']
+            
+            original_tweet_isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            )
+            original_tweet_isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            )
+            original_tweet_like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            ).one()
+            original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+            original_tweet_retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (original_tweet_id, user_id),
+            ).one()
+            original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if retweet else None
+               
+
+            return Response(
+                {
+                    "id": str(tweet.id),
+                    "user_id": tweet.user_id,
+                    "content": tweet.content,
+                    "created_at": tweet.created_at,
+                    "retweet_id": tweet.retweet_id,
+                    "image_urls": tweet.image_urls,
+                    "likes": tweet.likes,
+                    "comments": tweet.comments,
+                    "retweets": tweet.retweets,
+                    "username": username,
+                    "isLiked": bool(isLiked),
+                    "isRetweeted": bool(isRetweeted),
+                    "like_id": like_id,
+                    "delete_retweet_id": delete_retweet_id,
+                    "original_tweet": {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content,
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_isLiked),
+                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "like_id": original_tweet_like_id,
+                        "delete_retweet_id": original_tweet_delete_retweet_id,
+                        "username": original_tweet_username,
+                    }
+                },
+                status=status.HTTP_200_OK,
+            )
+
         return Response(
             {
-                "id": str(comment.id),
-                "tweet_id": comment.tweet_id,
-                "user_id": comment.user_id,
-                "content": comment.content,
-                "created_at": comment.created_at,
-                "retweet_id": comment.retweet_id,
-                "image_urls": comment.image_urls,
-                "likes": comment.likes,
-                "comments": comment.comments,
-                "retweets": comment.retweets,
+                "id": str(tweet.id),
+                "user_id": tweet.user_id,
+                "content": tweet.content,
+                "created_at": tweet.created_at,
+                "retweet_id": tweet.retweet_id,
+                "image_urls": tweet.image_urls,
+                "likes": tweet.likes,
+                "comments": tweet.comments,
+                "retweets": tweet.retweets,
+                "username": username,
                 "isLiked": bool(isLiked),
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
-                "retweeted_id": retweeted_id,
-               
+                "delete_retweet_id": delete_retweet_id,
             },
             status=status.HTTP_200_OK,
-        )
-
+        )    
 
 
 class DeleteAllLikes(APIView):
@@ -650,16 +846,17 @@ class LikeCommentView(APIView):
             )
 
         like_id = uuid4()
-        # if user already liked the comment
-        if session.execute(
+        like = session.execute(
             "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        ):
+        ).one()
+        
+        if like:
             return Response(
-                {"status": "fail", "message": "You have already liked this comment"},
+                {"status": "fail", "message": "You have already liked this tweet"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        
         session.execute(
             """
         INSERT INTO twitter.likes (id, tweet_id, user_id, created_at)
@@ -709,40 +906,41 @@ class RetweetCommentView(APIView):
 
     def post(self, request, comment_id):
         user_id = str(request.user.id)
+        retweet_id = uuid4()
+        
         # retweet_id = uuid4()
-        tweet_id = uuid4()
+        # tweet_id = uuid4()
         content = request.data.get("content", "")
         session = get_session()
 
-        # if comment doesn't exist
-        if not session.execute(
+        tweet_result = session.execute(
             "SELECT * FROM twitter.comments WHERE id = %s", (comment_id,)
-        ):
+        ).one()
+        # if comment doesn't exist
+        if not tweet_result:
             return Response(
                 {"status": "fail", "message": "Comment does not exist"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
+        if tweet_result is not None and not tweet_result.content:
+            return Response({"status": "fail", "message": "Cannot retweet empty retweet"},status=status.HTTP_400_BAD_REQUEST)  
+        
         # if user already retweeted
-        if session.execute(
+        existing_retweet = session.execute(
             "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
             (comment_id, user_id),
-        ):
+        ).one()
+        if existing_retweet:
             return Response(
-                {
-                    "status": "fail",
-                    "message": "You have already retweeted this comment",
-                },
+                {"status": "fail", "message": "You have already retweeted this tweet"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
         # TODO: check here too
-        comment = session.execute(
-            "SELECT * FROM twitter.comments WHERE id = %s", (comment_id,)
-            )[0]
-        likes = comment.likes
-        comments = comment.comments
-        retweets = comment.retweets
+        
+        likes = tweet_result.likes
+        comments = tweet_result.comments
+        retweets = tweet_result.retweets
       
         current_retweets = retweets if retweets is not None else 0
         updated_retweets = current_retweets + 1
@@ -755,11 +953,11 @@ class RetweetCommentView(APIView):
         INSERT INTO twitter.tweets (id,user_id, created_at, content, retweet_id, likes, comments, retweets)
         VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, %s)
         """,
-            (tweet_id, user_id, content, comment_id, likes, comments, retweets ),
+            (retweet_id, user_id, content, comment_id, likes, comments, retweets ),
         )
 
         return Response(
-            {"status": "success", "tweet_id": str(tweet_id)},
+            {"status": "success", "tweet_id": str(retweet_id)},
             status=status.HTTP_201_CREATED,
         )
 
@@ -814,8 +1012,14 @@ class RetweetView(APIView):
         user_id = str(request.user.id)
         retweet_id = uuid4()
         content = request.data.get('content', '') 
+        images = request.FILES.getlist("images")
         session = get_session()
 
+        if len(images) > 4:
+            return Response(
+                {"status": "fail", "message": "You can upload a maximum of 4 images"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         tweet_result = session.execute(
             "SELECT * FROM twitter.tweets WHERE id = %s", (tweet_id,)
         ).one()
@@ -840,7 +1044,12 @@ class RetweetView(APIView):
         likes = tweet_result.likes
         comments = tweet_result.comments
         retweets = tweet_result.retweets
-
+        image_urls = []
+        if images:            
+            for image in images:
+                image_url = self.upload_image_to_seaweedfs(image, retweet_id)
+                image_urls.append(image_url)
+          
         current_retweets = retweets if retweets is not None else 0
         updated_retweets = current_retweets + 1
         session.execute(
@@ -849,16 +1058,28 @@ class RetweetView(APIView):
 
         session.execute(
             """
-            INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, likes, comments, retweets)
-            VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, %s)
+            INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, likes, comments, retweets)
+            VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, %s, %s)
             """,
-            (retweet_id, user_id, content, tweet_id, likes, comments, retweets),
+            (retweet_id, user_id, content, tweet_id, image_urls, likes, comments, retweets),
         )
 
         return Response(
             {"status": "success", "retweet_id": str(retweet_id)},
             status=status.HTTP_201_CREATED,
         )
+        
+    def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, retweet_id):
+        url = f"http://seaweedfsfiler:8888/tweets/{retweet_id}/{image.name}"
+        path = f"/tweets/{retweet_id}/{image.name}"
+        file = {"file": image.file}
+        response = requests.post(url, files=file)
+        if response.status_code == 201:
+            return path
+
+        else:
+            return Exception("Failed to upload image to SeaweedFS")
+    
 
 
 class DeleteRetweetView(APIView):
@@ -938,19 +1159,114 @@ class GetUserTweetsView(APIView):
             "SELECT * FROM twitter.tweets WHERE user_id = %s ALLOW FILTERING",
             (user_id,),
         )
-        tweets = [
-            {
-                "id": str(row.id),
-                "user_id": row.user_id,
-                "content": row.content,
-                "created_at": row.created_at,
-                "likes": row.likes,
-                "comments": row.comments,
-                "retweets": row.retweets
+        # tweets = [
+        #     {
+        #         "id": str(row.id),
+        #         "user_id": row.user_id,
+        #         "content": row.content,
+        #         "created_at": row.created_at,
+        #         "likes": row.likes,
+        #         "comments": row.comments,
+        #         "retweets": row.retweets
+        #     }
+        #     for row in rows
+        # ]
+        timeline = []
+        for tweet in rows:
+            tweet_id = tweet.id
+            isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            )
+            isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            )
+            like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            like_id = str(like.id) if like else None
+            retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            delete_retweet_id = str(retweet.id) if retweet else None
+            
+            result = session.execute(
+                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+            ).one()
+            try:
+                user = User.objects.get(id=tweet.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = UserSerializer(user)
+            username = serializer.data['username']
+            profile_image = serializer.data['profile_image']
+            tweet_details = {
+                "id": tweet_id,
+                "user_id": tweet.user_id,
+                "content": tweet.content,
+                "created_at": tweet.created_at,
+                "retweet_id": tweet.retweet_id,
+                "image_urls": tweet.image_urls,
+                "likes": tweet.likes,
+                "comments": tweet.comments,
+                "retweets": tweet.retweets,
+                "username": username,
+                "profile_image":profile_image,
+                "isLiked": bool(isLiked),
+                "isRetweeted": bool(isRetweeted),
+                "like_id": like_id,
+                "delete_retweet_id": delete_retweet_id,
             }
-            for row in rows
-        ]
-        return Response({"tweets": tweets}, status=status.HTTP_200_OK)
+            if result and result.retweet_id:
+                original_tweet_id = result.retweet_id
+                original_tweet = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
+                ).one()
+                try:
+                    user = User.objects.get(id=original_tweet.user_id)
+                except User.DoesNotExist:
+                    return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+                original_tweet_serializer = UserSerializer(user)
+                original_tweet_username = original_tweet_serializer.data['username']
+                original_tweet_profile_image = original_tweet_serializer.data['profile_image']
+                original_tweet_isLiked = session.execute(
+                    "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_isRetweeted = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_like = session.execute(
+                    "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                ).one()
+                original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+                if original_tweet:
+                    tweet_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content,
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_isLiked),
+                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "like_id": original_tweet_like_id,
+                        "username": original_tweet_username,
+                        "profile_image":original_tweet_profile_image,
+                        
+                    }
+            timeline.append(tweet_details)
+        return Response({"tweets": timeline}, status=status.HTTP_200_OK)
 
 
 class GetUserCommentsView(APIView):
@@ -982,16 +1298,110 @@ class GetUserLikesView(APIView):
         rows = session.execute(
             "SELECT * FROM twitter.likes WHERE user_id = %s ALLOW FILTERING", (user_id,)
         )
-        likes = [
-            {
-                "id": str(row.id),
-                "tweet_id": row.tweet_id,
-                "user_id": row.user_id,
-                "created_at": row.created_at,
+        tweets = []
+        for row in rows:
+            tweet_id = row.tweet_id
+            tweet =  session.execute(
+                "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+            ).one()
+            if tweet:
+                tweets.append(tweet)
+
+        timeline = []
+        for tweet in tweets:
+            tweet_id = tweet.id
+            isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            like_id = str(like.id) if like else None
+            retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            delete_retweet_id = str(retweet.id) if retweet else None
+            result = session.execute(
+                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+            ).one()
+            try:
+                user = User.objects.get(id=tweet.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = UserSerializer(user)
+            username = serializer.data['username']
+            profile_image = serializer.data['profile_image']
+            tweet_details = {
+                "id": tweet_id,
+                "user_id": tweet.user_id,
+                "content": tweet.content,
+                "created_at": tweet.created_at,
+                "retweet_id": tweet.retweet_id,
+                "image_urls": tweet.image_urls,
+                "likes": tweet.likes,
+                "comments": tweet.comments,
+                "retweets": tweet.retweets,
+                "username": username,
+                "profile_image":profile_image,
+                "isLiked": bool(isLiked),
+                "isRetweeted": bool(isRetweeted),
+                "like_id": like_id,
+                "delete_retweet_id": delete_retweet_id,
             }
-            for row in rows
-        ]
-        return Response({"likes": likes}, status=status.HTTP_200_OK)
+            if result and result.retweet_id:
+                original_tweet_id = result.retweet_id
+                original_tweet = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
+                ).one()
+                try:
+                    user = User.objects.get(id=original_tweet.user_id)
+                except User.DoesNotExist:
+                    return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+                original_tweet_serializer = UserSerializer(user)
+                original_tweet_username = original_tweet_serializer.data['username']
+                original_tweet_profile_image = original_tweet_serializer.data['profile_image']
+                original_tweet_isLiked = session.execute(
+                    "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_isRetweeted = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_like = session.execute(
+                    "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                ).one()
+                original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+                if original_tweet:
+                    tweet_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content,
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_isLiked),
+                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "like_id": original_tweet_like_id,
+                        "username": original_tweet_username,
+                        "profile_image":original_tweet_profile_image,
+                        
+                    }
+            timeline.append(tweet_details)
+
+        return Response({"likes": timeline}, status=status.HTTP_200_OK)
 
 
 class GetUserRetweetsView(APIView):
@@ -1020,6 +1430,138 @@ class GetUserRetweetsView(APIView):
 
 
 
+# class FriendsTimelineView(APIView):
+#     permission_classes = (IsAuthenticated,)
+
+#     def get(self, request):
+#         user = request.user
+#         following_users = user.get_following()
+#         following_ids = [str(follow.followed.id) for follow in following_users]
+#         following_ids.append(str(user.id))
+#         # print(f"Following IDs: {following_ids}")
+
+#         if not following_ids:
+#             return Response(
+#                 {"message": "No following users found"},
+#                 status=status.HTTP_404_NOT_FOUND,
+#             )
+
+#         session = get_session()
+#         followings_list = ", ".join(["%s"] * len(following_ids))
+#         query = f"SELECT * FROM twitter.tweets WHERE user_id IN ({followings_list}) ALLOW FILTERING"
+
+#         tweets = session.execute(query, following_ids)
+
+#         timeline = []
+#         for tweet in tweets:
+#             tweet_id = tweet.id
+#             user_id = str(request.user.id)
+#             user_for_tweet = tweet.user_id
+#             # username = str(request.user.username)
+            
+#             isLiked = session.execute(
+#                 "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                 (tweet_id, user_id),
+#             )
+#             isRetweeted = session.execute(
+#                 "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                 (tweet_id, user_id),
+#             )
+#             like = session.execute(
+#                 "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                 (tweet_id, user_id),
+#             ).one()
+#             like_id = str(like.id) if like else None
+#             retweet = session.execute(
+#                 "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                 (tweet_id, user_id),
+#             ).one()
+#             delete_retweet_id = str(retweet.id) if retweet else None
+            
+            
+            
+#             result = session.execute(
+#                 "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+#             ).one()
+#             try:
+#                 user = User.objects.get(id=tweet.user_id)
+#             except User.DoesNotExist:
+#                 return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+#             serializer = UserSerializer(user)
+#             username = serializer.data['username']
+#             tweet_details = {
+#                 "id": tweet_id,
+#                 "user_id": tweet.user_id,
+#                 "content": tweet.content,
+#                 "created_at": tweet.created_at,
+#                 "retweet_id": tweet.retweet_id,
+#                 "image_urls": tweet.image_urls,
+#                 "likes": tweet.likes,
+#                 "comments": tweet.comments,
+#                 "retweets": tweet.retweets,
+#                 "username": username,
+#                 "isLiked": bool(isLiked),
+#                 "isRetweeted": bool(isRetweeted),
+#                 "like_id": like_id,
+#                 "delete_retweet_id": delete_retweet_id
+#             }
+            
+#             if result and result.retweet_id:
+#                 original_tweet_id = result.retweet_id
+#                 original_tweet = session.execute(
+#                     "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
+#                 ).one()
+                
+#                 try:
+#                     user = User.objects.get(id=original_tweet.user_id)
+#                 except User.DoesNotExist:
+#                     return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+#                 serializer = UserSerializer(user)
+#                 original_tweet_username = serializer.data['username']
+                
+#                 original_tweet_isLiked = session.execute(
+#                     "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                     (original_tweet_id, user_id),
+#                 )
+#                 original_tweet_isRetweeted = session.execute(
+#                     "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                     (original_tweet_id, user_id),
+#                 )
+#                 original_tweet_like = session.execute(
+#                     "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                     (original_tweet_id, user_id),
+#                 ).one()
+#                 original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+#                 original_tweet_retweet = session.execute(
+#                     "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+#                     (original_tweet_id, user_id),
+#                 ).one()
+#                 original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if retweet else None
+#                 if original_tweet:
+#                     tweet_details["original_tweet"] = {
+#                         "id": str(original_tweet_id),
+#                         "user_id": original_tweet.user_id,
+#                         "content": original_tweet.content,
+#                         "created_at": original_tweet.created_at,
+#                         "retweet_id": original_tweet.retweet_id,
+#                         "image_urls": original_tweet.image_urls,
+#                         "likes": original_tweet.likes,
+#                         "comments": original_tweet.comments,
+#                         "retweets": original_tweet.retweets,
+#                         "isLiked": bool(original_tweet_isLiked),
+#                         "isRetweeted": bool(original_tweet_isRetweeted),
+#                         "like_id": original_tweet_like_id,
+#                         "delete_retweet_id": original_tweet_delete_retweet_id,
+#                         "username": original_tweet_username,
+                        
+#                     }
+#             timeline.append(tweet_details)
+#         # print(f"Retrieved tweets: {timeline}")
+
+#         return Response({"tweets": timeline}, status=status.HTTP_200_OK)
+
 class FriendsTimelineView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -1028,7 +1570,6 @@ class FriendsTimelineView(APIView):
         following_users = user.get_following()
         following_ids = [str(follow.followed.id) for follow in following_users]
         following_ids.append(str(user.id))
-        # print(f"Following IDs: {following_ids}")
 
         if not following_ids:
             return Response(
@@ -1041,38 +1582,39 @@ class FriendsTimelineView(APIView):
         query = f"SELECT * FROM twitter.tweets WHERE user_id IN ({followings_list}) ALLOW FILTERING"
 
         tweets = session.execute(query, following_ids)
+        
+        tweets_list = list(tweets)
+        page_number = request.GET.get('page')
 
+        paginator = Paginator(tweets_list,10)
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            pagr_obj = paginator.page(1)
+        except EmptyPage:
+            pagr_obj = paginator.page(paginator.num_pages)
+        
         timeline = []
-        for tweet in tweets:
+        for tweet in page_obj.object_list:
             tweet_id = tweet.id
             user_id = str(request.user.id)
-            user_for_tweet = tweet.user_id
-            # username = str(request.user.username)
             
-            isLiked = session.execute(
-                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
-                (tweet_id, user_id),
-            )
-            isRetweeted = session.execute(
-                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
-                (tweet_id, user_id),
-            )
             like = session.execute(
                 "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
                 (tweet_id, user_id),
             ).one()
             like_id = str(like.id) if like else None
+            
             retweet = session.execute(
                 "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
                 (tweet_id, user_id),
             ).one()
             delete_retweet_id = str(retweet.id) if retweet else None
-            
-            
-            
+
             result = session.execute(
                 "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
             ).one()
+
             try:
                 user = User.objects.get(id=tweet.user_id)
             except User.DoesNotExist:
@@ -1080,6 +1622,8 @@ class FriendsTimelineView(APIView):
 
             serializer = UserSerializer(user)
             username = serializer.data['username']
+            profile_image = serializer.data['profile_image']
+
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1091,8 +1635,9 @@ class FriendsTimelineView(APIView):
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
                 "username": username,
-                "isLiked": bool(isLiked),
-                "isRetweeted": bool(isRetweeted),
+                "profile_image": profile_image,
+                "isLiked": bool(like),
+                "isRetweeted": bool(retweet),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id
             }
@@ -1102,33 +1647,27 @@ class FriendsTimelineView(APIView):
                 original_tweet = session.execute(
                     "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
                 ).one()
-                
+
                 try:
-                    user = User.objects.get(id=original_tweet.user_id)
+                    original_user = User.objects.get(id=original_tweet.user_id)
                 except User.DoesNotExist:
                     return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-                serializer = UserSerializer(user)
-                original_tweet_username = serializer.data['username']
-                
-                original_tweet_isLiked = session.execute(
-                    "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
-                    (original_tweet_id, user_id),
-                )
-                original_tweet_isRetweeted = session.execute(
-                    "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
-                    (original_tweet_id, user_id),
-                )
+                original_serializer = UserSerializer(original_user)
+                original_tweet_username = original_serializer.data['username']
+                original_tweet_profile_image = original_serializer.data['profile_image']
                 original_tweet_like = session.execute(
                     "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
                     (original_tweet_id, user_id),
                 ).one()
                 original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+
                 original_tweet_retweet = session.execute(
                     "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
                     (original_tweet_id, user_id),
                 ).one()
-                original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if retweet else None
+                original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if original_tweet_retweet else None
+
                 if original_tweet:
                     tweet_details["original_tweet"] = {
                         "id": str(original_tweet_id),
@@ -1140,17 +1679,17 @@ class FriendsTimelineView(APIView):
                         "likes": original_tweet.likes,
                         "comments": original_tweet.comments,
                         "retweets": original_tweet.retweets,
-                        "isLiked": bool(original_tweet_isLiked),
-                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "isLiked": bool(original_tweet_like),
+                        "isRetweeted": bool(original_tweet_retweet),
                         "like_id": original_tweet_like_id,
                         "delete_retweet_id": original_tweet_delete_retweet_id,
                         "username": original_tweet_username,
-                        
+                        "profile_image":original_tweet_profile_image
                     }
+            
             timeline.append(tweet_details)
-        # print(f"Retrieved tweets: {timeline}")
 
-        return Response({"tweets": timeline}, status=status.HTTP_200_OK)
+        return Response({"tweets": timeline, "page":page_number, "total_pages": paginator.num_pages, "total_tweets": paginator.count}, status=status.HTTP_200_OK)
 
 class UserTimelineView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -1191,9 +1730,7 @@ class UserTimelineView(APIView):
                 "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
             ).one()
             
-            result = session.execute(
-                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
-            ).one()
+            
             
             try:
                 user = User.objects.get(id=tweet.user_id)
@@ -1202,6 +1739,7 @@ class UserTimelineView(APIView):
 
             serializer = UserSerializer(user)
             username = serializer.data['username']
+            profile_image = serializer.data['profile_image']
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1213,6 +1751,7 @@ class UserTimelineView(APIView):
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
                 "username": username,
+                "profile_image":profile_image,
                 "isLiked": bool(isLiked),
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
@@ -1229,9 +1768,9 @@ class UserTimelineView(APIView):
                 except User.DoesNotExist:
                     return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-                serializer = UserSerializer(user)
-                original_tweet_username = serializer.data['username']
-                
+                original_tweet_serializer = UserSerializer(user)
+                original_tweet_username = original_tweet_serializer.data['username']
+                original_tweet_profile_image = original_tweet_serializer.data['profile_image']
                 original_tweet_isLiked = session.execute(
                     "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
                     (original_tweet_id, user_id),
@@ -1260,6 +1799,7 @@ class UserTimelineView(APIView):
                         "isRetweeted": bool(original_tweet_isRetweeted),
                         "like_id": original_tweet_like_id,
                         "username": original_tweet_username,
+                        "profile_image":original_tweet_profile_image,
                         
                     }
             timeline.append(tweet_details)
@@ -1303,16 +1843,119 @@ class GetCurrentUserLikes(APIView):
         rows = session.execute(
             "SELECT * FROM twitter.likes WHERE user_id = %s ALLOW FILTERING", (user_id,)
         )
-        likes = [
-            {
-                "id": str(row.id),
-                "tweet_id": row.tweet_id,
-                "user_id": row.user_id,
-                "created_at": row.created_at,
+        # likes = [
+        #     {
+        #         "id": str(row.id),
+        #         "tweet_id": row.tweet_id,
+        #         "user_id": row.user_id,
+        #         "created_at": row.created_at,
+        #     }
+        #     for row in rows
+        # ]
+        
+        tweets = []
+        for row in rows:
+            tweet_id = row.tweet_id
+            tweet =  session.execute(
+                "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+            )
+            tweets.append(tweet)
+        
+        timeline = []
+        for tweet in tweets:
+            tweet_id = tweet.id
+            isLiked = session.execute(
+                "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            )
+            isRetweeted = session.execute(
+                "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            )
+            like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            like_id = str(like.id) if like else None
+            retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            delete_retweet_id = str(retweet.id) if retweet else None
+            result = session.execute(
+                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (tweet_id,)
+            ).one()
+            try:
+                user = User.objects.get(id=tweet.user_id)
+            except User.DoesNotExist:
+                return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            serializer = UserSerializer(user)
+            username = serializer.data['username']
+            profile_image = serializer.data['profile_image']
+            tweet_details = {
+                "id": tweet_id,
+                "user_id": tweet.user_id,
+                "content": tweet.content,
+                "created_at": tweet.created_at,
+                "retweet_id": tweet.retweet_id,
+                "image_urls": tweet.image_urls,
+                "likes": tweet.likes,
+                "comments": tweet.comments,
+                "retweets": tweet.retweets,
+                "username": username,
+                "profile_image":profile_image,
+                "isLiked": bool(isLiked),
+                "isRetweeted": bool(isRetweeted),
+                "like_id": like_id,
+                "delete_retweet_id": delete_retweet_id,
             }
-            for row in rows
-        ]
-        return Response({"likes": likes}, status=status.HTTP_200_OK)
+            if result and result.retweet_id:
+                original_tweet_id = result.retweet_id
+                original_tweet = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING", (original_tweet_id,)
+                ).one()
+                try:
+                    user = User.objects.get(id=original_tweet.user_id)
+                except User.DoesNotExist:
+                    return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+                original_tweet_serializer = UserSerializer(user)
+                original_tweet_username = original_tweet_serializer.data['username']
+                original_tweet_profile_image = original_tweet_serializer.data['profile_image']
+                original_tweet_isLiked = session.execute(
+                    "SELECT * FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_isRetweeted = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                )
+                original_tweet_like = session.execute(
+                    "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                    (original_tweet_id, user_id),
+                ).one()
+                original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+                if original_tweet:
+                    tweet_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content,
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_isLiked),
+                        "isRetweeted": bool(original_tweet_isRetweeted),
+                        "like_id": original_tweet_like_id,
+                        "username": original_tweet_username,
+                        "profile_image":original_tweet_profile_image,
+                        
+                    }
+            timeline.append(tweet_details)
+                
+        return Response({"likes": timeline}, status=status.HTTP_200_OK)
 
 
 class GetCurrentUserComments(APIView):

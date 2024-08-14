@@ -41,11 +41,12 @@ class User(AbstractUser):
     name = models.CharField(max_length=120, default='User name')
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=120)
+    profile_image = models.URLField(default="", blank=True, null=True)
+    header_image = models.URLField(default="",blank=True,null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    
     objects = CustomUserManager()
 
     def follow(self, user):
@@ -60,6 +61,12 @@ class User(AbstractUser):
     
     def get_followers(self):
         return Follow.objects.filter(followed=self)
+    
+    # def get_isFollowing(self, obj):
+    #     request = self.context.get('request')
+    #     if request and request.user.is_authenticated:
+    #         return Follow.objects.filter(follower=self, followed=user).exists()
+    #     return False
 
     def profile(self):
         profile = Profile.objects.get(user=self)
@@ -87,7 +94,7 @@ class Follow(models.Model):
         ]
 
     def _str_(self):
-        return self.user.name + ' is following ' + self.follower.name
+        return self.follower.name + ' is following ' + self.followed.name
 
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)

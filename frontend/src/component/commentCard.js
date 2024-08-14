@@ -6,6 +6,7 @@ import heart from "../assets/heart.svg";
 import heartred from "../assets/heart-red.svg";
 import retweet from "../assets/retweet.svg";
 import retweetred from "../assets/retweet-red.svg";
+import axiosInstance from "../interceptor/axiosInstance";
 
 export const CommentCard = ({ comment, tweetId }) => {
     const navigate = useNavigate();
@@ -16,7 +17,7 @@ export const CommentCard = ({ comment, tweetId }) => {
     const handleLike = async () => {
         try {
             const accessToken = localStorage.getItem('access_token');
-            await axios.post(`${apiUrl}/comments/like/${comment.id}`, {}, {
+            await axiosInstance.post(`${apiUrl}/comments/like/${comment.id}`, {}, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
@@ -32,7 +33,7 @@ export const CommentCard = ({ comment, tweetId }) => {
     const handleUnlike = async () => {
         try {
             const accessToken = localStorage.getItem('access_token');
-            await axios.delete(`${apiUrl}/comments/unlike/${comment.id}`, {
+            await axiosInstance.delete(`${apiUrl}/comments/unlike/${comment.id}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
@@ -49,7 +50,7 @@ export const CommentCard = ({ comment, tweetId }) => {
     const handleRetweet = async () => {
         try {
             const accessToken = localStorage.getItem('access_token');
-            await axios.post(`${apiUrl}/comments/retweet/${comment.id}`, {}, {
+            await axiosInstance.post(`${apiUrl}/comments/retweet/${comment.id}`, {}, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
@@ -65,7 +66,7 @@ export const CommentCard = ({ comment, tweetId }) => {
     const handleUnretweet = async () => {
         try {
             const accessToken = localStorage.getItem('access_token');
-            await axios.delete(`${apiUrl}/comments/unretweet/${comment.id}`, {
+            await axiosInstance.delete(`${apiUrl}/comments/unretweet/${comment.id}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
