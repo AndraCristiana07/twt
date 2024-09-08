@@ -15,6 +15,7 @@ import requests
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import ffmpeg 
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -27,72 +28,198 @@ def is_valid_uuid(uuid_to_test, version=4):
         return False
     return str(uuid_obj) == uuid_to_test
 
+# class PostTweetView(APIView):
+#     permission_classes = [IsAuthenticated]
+    
+#     def __init__(self):
+#         logger.debug(self.authentication_classes)
+#         logger.debug(self.permission_classes)
+#         pass
+
+#     def post(self, request: Request) -> Response:
+#         # TODO de obicei din jwt se extrage direct user-ul
+#         # clasa rest_framework_simplejwt > authentication > JWTAuthentication 
+#         # efectiv are metoda de 'get_user' 
+#         # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/rest_framework_simplejwt.html#rest_framework_simplejwt.authentication.JWTAuthentication
+#         user_id = str(request.user.id) 
+
+#         content = request.data.get("content")
+#         # images = request.FILES.getlist("media")
+#         media = request.FILES.getlist("images")
+#         tweet_id = uuid4()
+        
+#         session = get_session()
+#         if len(media) > 4:
+#             return Response(
+#                 {"status": "fail", "message": "You can upload a maximum of 4 images"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+            
+#         if not content and not media:
+#             return Response(
+#                 {"status": "fail", "message": "Content cannot be empty"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+        
+#         media_urls = []
+#         video_duration = []
+#         if media:            
+#             logging.debug('TODO', os.path)
+#             for file in media:
+#                 # _, extension = os.path.splitext(file)
+#                 extension = os.path.splitext(file.name)[1][1:].strip().lower()
+
+#                 if extension in ['png', 'jpg', 'jpeg']:
+#                     print("image")
+#                     image_url = self.upload_image_to_seaweedfs(file, tweet_id)
+#                     media_urls.append(image_url)
+#                 elif extension in ['mp4', 'webm']:
+#                     print("video")
+#                     video_url, duration = self.upload_video_to_seaweedfs(file, tweet_id)
+#                     media_urls.append(video_url)
+#                     # duration = self.get_duration(file.file)
+#                     video_duration.append(duration)
+#                     # duration = ffmpeg.probe(file.file)["format"]["duration"]
+#                     # video_duration.append(duration)
+#                 # image_url = self.upload_image_to_seaweedfs(image, tweet_id)
+#                 # image_urls.append(image_url)
+
+#         session.execute(
+#             """
+#         INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, video_duration, likes, comments, retweets)
+#         VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, 0, 0, 0)
+#         """,
+#             (tweet_id, user_id, content, None, media_urls, video_duration)
+#         )
+
+#         return Response(
+#             {"status": "success", "tweet_id": tweet_id}, status=status.HTTP_201_CREATED
+#         )
+
+#     def get_duration(file_path: str) ->str:
+#         command = (f"ffmpeg -i {file_path} 2> >(grep -i Duration) | tr -s " " | cut -d " " -f3 | cut -d "," -f1")
+#         res = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#         duration_str = res.stdout.decode('utf-8').strip()
+#         if duration_str:
+#             return duration_str
+#         else:
+#             return Exception("Duration could not be extracted")
+
+#     def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, tweet_id):
+#         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/image/{image.name}"
+#         path = f"/tweets/{tweet_id}/image/{image.name}"
+#         file = {"file": image.file}
+#         duration = self.get_duration(path)
+
+#         response = requests.post(url, files=file)
+        
+#         if response.status_code == 201:
+#             return path, duration
+
+#         else:
+#             return Exception("Failed to upload image to SeaweedFS")
+        
+#     def upload_video_to_seaweedfs(self, video: InMemoryUploadedFile, tweet_id):
+#         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/{video.name}?maxMB=10MB"
+#         path = f"/tweets/{tweet_id}/video/{video.name}"
+#         file = {"file": video.file}
+#         response = requests.post(url, files=file)
+        
+#         if response.status_code == 201:
+#             return path
+
+#         else:
+#             return Exception("Failed to upload video to SeaweedFS")
+    
+ 
 class PostTweetView(APIView):
     permission_classes = [IsAuthenticated]
-    
-    def __init__(self):
-        logger.debug(self.authentication_classes)
-        logger.debug(self.permission_classes)
-        pass
 
     def post(self, request: Request) -> Response:
-        # TODO de obicei din jwt se extrage direct user-ul
-        # clasa rest_framework_simplejwt > authentication > JWTAuthentication 
-        # efectiv are metoda de 'get_user' 
-        # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/rest_framework_simplejwt.html#rest_framework_simplejwt.authentication.JWTAuthentication
-        user_id = str(request.user.id) 
-
+        user_id = str(request.user.id)
         content = request.data.get("content")
-        # images = request.FILES.getlist("media")
         media = request.FILES.getlist("images")
         tweet_id = uuid4()
-        
+
         session = get_session()
         if len(media) > 4:
             return Response(
                 {"status": "fail", "message": "You can upload a maximum of 4 images"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            
         if not content and not media:
             return Response(
                 {"status": "fail", "message": "Content cannot be empty"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
-        media_urls = []
-        if media:            
-            logging.debug('TODO', os.path)
-            for file in media:
-                # _, extension = os.path.splitext(file)
-                extension = os.path.splitext(file)[1][1:].strip().lower()
 
-                if extension in ['png', 'jpg', 'jpeg']:
-                    print("image")
-                    media_urls = self.upload_image_to_seaweedfs(file, tweet_id)
-                elif extension in ['mp4', 'webm']:
-                    print("video")
-                    media_urls = self.upload_video_to_seaweedfs(file, tweet_id)
-                    
-                # image_url = self.upload_image_to_seaweedfs(image, tweet_id)
-                # image_urls.append(image_url)
+        media_urls = []
+        video_durations = [] 
+        
+        for file in media:
+            extension = os.path.splitext(file.name)[1][1:].strip().lower()
+
+            if extension in ['png', 'jpg', 'jpeg']:
+                
+                logger.debug("image")
+                image_url = self.upload_image_to_seaweedfs(file, tweet_id)
+                media_urls.append(image_url)
+                # video_durations.append(None)
+                video_durations = []
+            elif extension in ['mp4', 'webm']:
+                
+                logger.debug("video")
+                logger.debug("ext" + extension)
+                video_url, duration = self.upload_video_to_seaweedfs(file, tweet_id)
+                media_urls.append(video_url)
+                video_durations.append(duration)
 
         session.execute(
             """
-        INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, likes, comments, retweets)
-        VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, 0, 0, 0)
-        """,
-            (tweet_id, user_id, content, None, media_urls)
+            INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, video_duration, likes, comments, retweets)
+            VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, 0, 0, 0)
+            """,
+            (tweet_id, user_id, content, None, media_urls, video_durations)
         )
 
         return Response(
             {"status": "success", "tweet_id": tweet_id}, status=status.HTTP_201_CREATED
         )
 
+    def write_bytes_to_pipe(self, video_bytes, pipe_path):
+        with open(pipe_path, 'wb') as f:
+            f.write(video_bytes)
+            
+    def get_duration(self, file_path: str) -> str:
+        command = (
+            f'ffmpeg -i {file_path} 2> >(grep -i Duration) | tr -s " " | cut -d " " -f3 | cut -d "," -f1'
+        )
+        logger.error(command)
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        duration_str = result.stdout.decode('utf-8').strip()
+        logger.debug("vid length" + duration_str)
+        logger.debug("res length" + str(result))
+
+        if duration_str:
+            # duration_seconds = float(duration_str)
+            # hours = int(duration_seconds // 3600)
+            # minutes = int((duration_seconds % 3600) // 60)
+            # seconds = duration_seconds % 60
+            # formatted_duration = f"{hours:02}:{minutes:02}:{seconds:05.2f}"
+            return duration_str
+        else:
+            # TODO
+            # throw
+            pass
+
     def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, tweet_id):
         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/image/{image.name}"
         path = f"/tweets/{tweet_id}/image/{image.name}"
         file = {"file": image.file}
+
+        logger.error(image.name)        
+
         response = requests.post(url, files=file)
         
         if response.status_code == 201:
@@ -105,16 +232,27 @@ class PostTweetView(APIView):
         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/{video.name}?maxMB=10MB"
         path = f"/tweets/{tweet_id}/video/{video.name}"
         file = {"file": video.file}
-        duration = ffmpeg.probe(path)["format"]["duration"]
-        response = requests.post(url, files=file)
-        
-        if response.status_code == 201:
-            return path
 
+        # MY_PIPE = '/tmp/ffmpeg.pipe'
+        # if not os.path.exists(MY_PIPE):
+        #     os.mkfifo(MY_PIPE)
+
+        # self.write_bytes_to_pipe(video.file.read(), MY_PIPE)
+        # duration = self.get_duration(MY_PIPE)
+
+        tmp_video_path = f"/tmp/{video.name}"
+        with open(tmp_video_path, 'wb') as f:
+            f.write(video.read())
+        duration = self.get_duration(tmp_video_path)
+
+
+        response = requests.post(url, files=file)
+
+        if response.status_code == 201:
+            return path, duration
         else:
-            return Exception("Failed to upload video to SeaweedFS")
-    
-    
+            raise Exception("Failed to upload video to SeaweedFS")   
+
 class GetSingleTweetView(APIView):
 
     def get(self, request, tweet_id):

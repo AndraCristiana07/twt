@@ -38,6 +38,7 @@ def init_cassandra():
             content TEXT,
             retweet_id UUID,
             image_urls LIST<TEXT>, 
+            video_duration LIST<TEXT>,
             likes INT,
             comments INT,
             retweets INT,
