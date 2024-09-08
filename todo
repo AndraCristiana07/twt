@@ -1,0 +1,177 @@
+twitter:
+
+	-cassandra
+	-cdn
+	-redis
+	-elastic search
+	-spark/hadoop
+	-kafka
+
+commands: 
+- docker exec -it [container-id] bash
+
+-tweet: post, get, delete
+
+- users: follows, followers, 
+
+-delete tweets if user is deleted?
+
+
+
+- error for used mail or username in register
+
+- search user -> error no id
+
+- retweets to appear with tweets content as well
+- repair likes, retweets -> isLiked, isRetweeted
+- following page : unlike, unretweet
+- cache cu user infos already fetched
+
+-fix like, retweet la retweets
+
+aws s3 --endpoint="http://.." ls
+
+
+
+
+- videos
+
+- external background is black on dialog
+
+- reuse comp
+
+- sa faca crop la imag sa fie egale
+
+-  ffmpeg -re -i BigBuckBunny.mp4 -c copy -f mp4 -movflags frag_keyframe+empty_moov output.mp4
+
+
+
+elasticsearch error while uploading image: 
+ter.uuid":"RXxUGpdRR36Q4SCc_0iW-g","elasticsearch.node.id":"xdpyOtUSS1mvn5ya9_qDkQ","elasticsearch.node.name":"f0b30f455eca","elasticsearch.cluster.name":"docker-cluster"}
+backend-1          | [DEBUG] 2024-08-09 15:33:22,037 -- connectionpool.py -- T:Thread-4 (process_request_thread) L:urllib3.connectionpool http://elasticsearch:9200 "PUT /_bulk?refresh=true HTTP/11" 200 None
+backend-1          | [INFO] 2024-08-09 15:33:22,037 -- _transport.py -- T:Thread-4 (process_request_thread) L:elastic_transport.transport PUT http://elasticsearch:9200/_bulk?refresh=true [status:200 duration:60.005s]
+backend-1          | Internal Server Error: /upload_profile_picture
+backend-1          | Traceback (most recent call last):
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+backend-1          |     response = get_response(request)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+backend-1          |     response = wrapped_callback(request, *callback_args, **callback_kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+backend-1          |     return view_func(request, *args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 104, in view
+backend-1          |     return self.dispatch(request, *args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 509, in dispatch
+backend-1          |     response = self.handle_exception(exc)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 469, in handle_exception
+backend-1          |     self.raise_uncaught_exception(exc)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+backend-1          |     raise exc
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 506, in dispatch
+backend-1          |     response = handler(request, *args, **kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/app/views.py", line 73, in post
+backend-1          |     serializer.save()
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 203, in save
+backend-1          |     self.instance = self.update(self.instance, validated_data)
+backend-1          |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/app/serializer.py", line 19, in update
+backend-1          |     instance.save()
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/contrib/auth/base_user.py", line 78, in save
+backend-1          |     super().save(*args, **kwargs)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/db/models/base.py", line 822, in save
+backend-1          |     self.save_base(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/db/models/base.py", line 924, in save_base
+backend-1          |     post_save.send(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py", line 189, in send
+backend-1          |     response = receiver(signal=self, sender=sender, **named)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/signals.py", line 61, in handle_save
+backend-1          |     registry.update(instance)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/registries.py", line 141, in update
+backend-1          |     doc().update(instance, **kwargs)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 259, in update
+backend-1          |     return self._bulk(
+backend-1          |            ^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 236, in _bulk
+backend-1          |     return self.bulk(*args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 178, in bulk
+backend-1          |     response = bulk(client=self._get_connection(), actions=actions, **kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 521, in bulk
+backend-1          |     for ok, item in streaming_bulk(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 436, in streaming_bulk
+backend-1          |     for data, (ok, info) in zip(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 355, in _process_bulk_chunk
+backend-1          |     yield from gen
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 274, in _process_bulk_chunk_success
+backend-1          |     raise BulkIndexError(f"{len(errors)} document(s) failed to index.", errors)
+backend-1          | elasticsearch.helpers.BulkIndexError: 1 document(s) failed to index.
+backend-1          | [ERROR] 2024-08-09 15:33:22,070 -- log.py -- T:Thread-4 (process_request_thread) L:django.request Internal Server Error: /upload_profile_picture
+backend-1          | Traceback (most recent call last):
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+backend-1          |     response = get_response(request)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+backend-1          |     response = wrapped_callback(request, *callback_args, **callback_kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+backend-1          |     return view_func(request, *args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/views/generic/base.py", line 104, in view
+backend-1          |     return self.dispatch(request, *args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 509, in dispatch
+backend-1          |     response = self.handle_exception(exc)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 469, in handle_exception
+backend-1          |     self.raise_uncaught_exception(exc)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+backend-1          |     raise exc
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/views.py", line 506, in dispatch
+backend-1          |     response = handler(request, *args, **kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/app/views.py", line 73, in post
+backend-1          |     serializer.save()
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/rest_framework/serializers.py", line 203, in save
+backend-1          |     self.instance = self.update(self.instance, validated_data)
+backend-1          |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/app/serializer.py", line 19, in update
+backend-1          |     instance.save()
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/contrib/auth/base_user.py", line 78, in save
+backend-1          |     super().save(*args, **kwargs)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/db/models/base.py", line 822, in save
+backend-1          |     self.save_base(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/db/models/base.py", line 924, in save_base
+backend-1          |     post_save.send(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django/dispatch/dispatcher.py", line 189, in send
+backend-1          |     response = receiver(signal=self, sender=sender, **named)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/signals.py", line 61, in handle_save
+backend-1          |     registry.update(instance)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/registries.py", line 141, in update
+backend-1          |     doc().update(instance, **kwargs)
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 259, in update
+backend-1          |     return self._bulk(
+backend-1          |            ^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 236, in _bulk
+backend-1          |     return self.bulk(*args, **kwargs)
+backend-1          |            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/django_elasticsearch_dsl/documents.py", line 178, in bulk
+backend-1          |     response = bulk(client=self._get_connection(), actions=actions, **kwargs)
+backend-1          |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 521, in bulk
+backend-1          |     for ok, item in streaming_bulk(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 436, in streaming_bulk
+backend-1          |     for data, (ok, info) in zip(
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 355, in _process_bulk_chunk
+backend-1          |     yield from gen
+backend-1          |   File "/app/venv/lib/python3.12/site-packages/elasticsearch/helpers/actions.py", line 274, in _process_bulk_chunk_success
+backend-1          |     raise BulkIndexError(f"{len(errors)} document(s) failed to index.", errors)
+backend-1          | elasticsearch.helpers.BulkIndexError: 1 document(s) failed to index.
+backend-1          | [09/Aug/2024 15:47:50] "POST /upload_profile_picture HTTP/1.1" 500 167023
