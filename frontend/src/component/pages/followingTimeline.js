@@ -2006,27 +2006,6 @@ export const VideoPlayer = () => {
     }
   }
 
-  // const videoFetch = async (fileId) => {
-  //   try {
-
-  //     const url = `http://192.168.0.138:8080//${fileId}`;
-
-  //     const response = await axiosInstance.get(url);
-
-  //     if (!response.ok) {
-  //       throw new Error(`Failed to fetch chunk: ${response.statusText}`);
-  //     }
-
-
-  //     const arrayBuffer = await response.arrayBuffer();
-
-  //     return arrayBuffer;
-  //   } catch (error) {
-  //     console.error('Error fetching video chunk:', error);
-  //     throw error;
-  //   }
-  // };
-
 
   return <video
     ref={videoRef}
@@ -2051,7 +2030,7 @@ export const FollowingTimeline = () => {
   const [success, setSuccess] = useState(null)
   const [loading, setLoading] = useState(false)
   const [loadedData, setLoadedData] = useState([]);
-  const [hasMore, setHasMore] = useState(true)
+  const [hasMore, setHasMore] = useState(true);
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
   const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
@@ -2085,6 +2064,7 @@ export const FollowingTimeline = () => {
       setTotalTweets(response.data.total_tweets)
       setTotalPages(response.data.total_pages)
       setHasMore(page < response.data.total_pages)
+     
       setLoading(false);
     } catch (error) {
       console.log(error);
@@ -2200,6 +2180,7 @@ export const FollowingTimeline = () => {
   const [content, setContent] = useState("");
   const [files, setFiles] = useState([])
   const [previews, setPreviews] = useState([]);
+  
   const handleTweetPost = async (e) => {
     e.preventDefault();
     try {

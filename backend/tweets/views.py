@@ -15,11 +15,12 @@ import requests
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import ffmpeg 
+import json
 import subprocess
 
 logger = logging.getLogger(__name__)
 
-# Create your views here.
+# Create your views here. now
 
 def is_valid_uuid(uuid_to_test, version=4):
     try:
@@ -164,56 +165,71 @@ class PostTweetView(APIView):
                 logger.debug("image")
                 image_url = self.upload_image_to_seaweedfs(file, tweet_id)
                 media_urls.append(image_url)
-                # video_durations.append(None)
-                video_durations = []
+
             elif extension in ['mp4', 'webm']:
                 
                 logger.debug("video")
                 logger.debug("ext" + extension)
+                
                 video_url, duration = self.upload_video_to_seaweedfs(file, tweet_id)
+                
                 media_urls.append(video_url)
                 video_durations.append(duration)
+                # video_info = self.get_video_info(tweet_id)
 
         session.execute(
-            """
-            INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, video_duration, likes, comments, retweets)
-            VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, 0, 0, 0)
-            """,
-            (tweet_id, user_id, content, None, media_urls, video_durations)
-        )
+                """
+                INSERT INTO twitter.tweets (id, user_id, created_at, content, retweet_id, image_urls, video_duration, likes, comments, retweets)
+                VALUES (%s, %s, toTimestamp(now()), %s, %s, %s, %s, 0, 0, 0)
+                """,
+                (tweet_id, user_id, content, None, media_urls, video_durations)
+            )
 
         return Response(
             {"status": "success", "tweet_id": tweet_id}, status=status.HTTP_201_CREATED
         )
 
-    def write_bytes_to_pipe(self, video_bytes, pipe_path):
-        with open(pipe_path, 'wb') as f:
-            f.write(video_bytes)
-            
-    def get_duration(self, file_path: str) -> str:
-        command = (
-            f'ffmpeg -i {file_path} 2> >(grep -i Duration) | tr -s " " | cut -d " " -f3 | cut -d "," -f1'
-        )
+    def get_duration(video_path: str) -> str:
+			
+        command = f'ffmpeg -i  {video_path}'
         logger.error(command)
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
-        duration_str = result.stdout.decode('utf-8').strip()
-        logger.debug("vid length" + duration_str)
-        logger.debug("res length" + str(result))
+        (stdout, stderr) = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        duration_str = list(filter(lambda s: 'Duration:' in s, stderr.decode('utf-8').rstrip().splitlines()))[0].split(' ')[3].split(',')[0]
+        
+        # logger.debug("res length" + type(result.stdout))
+        # logger.debug("res length" + str(result))
+        logger.debug("vid length" + str(duration_str))
 
         if duration_str:
-            # duration_seconds = float(duration_str)
-            # hours = int(duration_seconds // 3600)
-            # minutes = int((duration_seconds % 3600) // 60)
-            # seconds = duration_seconds % 60
-            # formatted_duration = f"{hours:02}:{minutes:02}:{seconds:05.2f}"
+            
             return duration_str
         else:
-            # TODO
-            # throw
-            pass
-
+            logger.error(f"STDOUT {stdout}")
+            logger.error(f"STDERR {stderr}")
+            raise Exception("Bad video")
+    
+    def conversion(video_path: str):
+        # new_path = f'{file_path}'  
+        file_name, file_extension = os.path.splitext(video_path)
+        
+        output_path = f'{file_name}-converted{file_extension}'
+        
+        command = f'ffmpeg -i {video_path} -c copy -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -acodec aac -vcodec copy {output_path}'
+        (stdout, stderr) = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        # if stderr:
+        #     logger.error("erroooor " + stderr.decode('utf-8')+ '\n')
+        #     raise Exception("Error during conversion")
+        logger.info("stdout " + stdout.decode('utf-8')+ '\n')
+        logger.info("stderr " + stderr.decode('utf-8')+ '\n')
+        logger.info("Video sucessfully converted")
+        # with open(output_path, 'rb') as f:
+        #     converted = f.read()
+        #     converted.name = f'{file_name}-converted{file_extension}'
+        return output_path
+            
     def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, tweet_id):
+        
         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/image/{image.name}"
         path = f"/tweets/{tweet_id}/image/{image.name}"
         file = {"file": image.file}
@@ -229,30 +245,70 @@ class PostTweetView(APIView):
             return Exception("Failed to upload image to SeaweedFS")
         
     def upload_video_to_seaweedfs(self, video: InMemoryUploadedFile, tweet_id):
-        url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/{video.name}?maxMB=10MB"
-        path = f"/tweets/{tweet_id}/video/{video.name}"
-        file = {"file": video.file}
+        tmp_file_path = f"/tmp/{video.name}"
+        # pipe_fifo = f"/tmp/{video.name}.fifo"
+        # if not os.path.exists(pipe_fifo):
+        #     os.mkfifo(pipe_fifo)
+        with open(tmp_file_path, 'wb') as f:
+            f.write(video.file.read())
+        try:
+            
+            # with open(pipe_fifo, 'wb') as fifo:
+            #     # f.write(converted_file.read())
+            #     fifo.write(video.file.read())	
+            new_file_path = PostTweetView.conversion(tmp_file_path)
+            duration = PostTweetView.get_duration(tmp_file_path)
+            
+            url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/{video.name}?maxMB=10MB"
+            path = f"/tweets/{tweet_id}/video/{video.name}"
+            
+            file = {"file": open(new_file_path, 'rb')}
+            
+            
+            response = requests.post(url, files=file)
 
-        # MY_PIPE = '/tmp/ffmpeg.pipe'
-        # if not os.path.exists(MY_PIPE):
-        #     os.mkfifo(MY_PIPE)
+            if response.status_code == 201:
+                return path, duration
+            else:
+                raise Exception("Failed to upload video to SeaweedFS")  
+        finally:
+            if os.path.exists(tmp_file_path):
+                os.remove(tmp_file_path) 
 
-        # self.write_bytes_to_pipe(video.file.read(), MY_PIPE)
-        # duration = self.get_duration(MY_PIPE)
+    # def upload_video_to_seaweedfs(self, file_path:str, tweet_id):
+    #     file_name= os.path.basename(file_path)
+    #     url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/{file_name}?maxMB=10MB"
+    #     path = f"/tweets/{tweet_id}/video/{file_name}"
+    #     # file = {"file": video.file}
+    #     # video_info =f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"
+    #     # MY_PIPE = '/tmp/ffmpeg.pipe'
+    #     # if not os.path.exists(MY_PIPE):
+    #     #     os.mkfifo(MY_PIPE)
 
-        tmp_video_path = f"/tmp/{video.name}"
-        with open(tmp_video_path, 'wb') as f:
-            f.write(video.read())
-        duration = self.get_duration(tmp_video_path)
+    #     # self.write_bytes_to_pipe(video.file.read(), MY_PIPE)
+    #     # duration = self.get_duration(MY_PIPE)
 
+    #     try:
+    #         # tmp_video_path = f"/tmp/{video.name}"
+    #         if not os.path.exists(file_path):
+    #             logger.error("not exist")
+    #             raise FileNotFoundError(f"file {file_path} not found")
+    #         with open(file_path, 'rb') as f:
+    #             file = {"file": f}
+            
+    #         duration = self.get_duration(file_path)
 
-        response = requests.post(url, files=file)
+    #         response = requests.post(url, files=file)
 
-        if response.status_code == 201:
-            return path, duration
-        else:
-            raise Exception("Failed to upload video to SeaweedFS")   
+    #         if response.status_code == 201:
+    #             return path, duration
+    #         else:
+    #             raise Exception("Failed to upload video to SeaweedFS")  
+    #     finally:
+    #         if os.path.exists(file_path):
+    #             os.remove(file_path) 
 
+    
 class GetSingleTweetView(APIView):
 
     def get(self, request, tweet_id):
@@ -1667,7 +1723,11 @@ class FriendsTimelineView(APIView):
             serializer = UserSerializer(user)
             username = serializer.data['username']
             profile_image = serializer.data['profile_image']
-
+            
+            media_url = tweet.image_urls
+            logger.debug("media url " + str(media_url))
+            video_info = self.get_video_info(tweet_id, str(media_url))
+            
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1683,7 +1743,8 @@ class FriendsTimelineView(APIView):
                 "isLiked": bool(like),
                 "isRetweeted": bool(retweet),
                 "like_id": like_id,
-                "delete_retweet_id": delete_retweet_id
+                "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None
             }
             
             if result and result.retweet_id:
@@ -1716,7 +1777,8 @@ class FriendsTimelineView(APIView):
                         (original_tweet_id, user_id),
                     ).one()
                     original_tweet_delete_retweet_id = str(original_tweet_retweet.id) if original_tweet_retweet else None
-
+                    media_url = original_tweet.image_urls
+                    video_info = self.get_video_info(original_tweet_id,media_url)
                     if original_tweet:
                         tweet_details["original_tweet"] = {
                             "id": str(original_tweet_id),
@@ -1733,7 +1795,8 @@ class FriendsTimelineView(APIView):
                             "like_id": original_tweet_like_id,
                             "delete_retweet_id": original_tweet_delete_retweet_id,
                             "username": original_tweet_username,
-                            "profile_image":original_tweet_profile_image
+                            "profile_image":original_tweet_profile_image,
+                            "video_info": video_info if video_info else None
                         }
                     else:
                         tweet_details["original_tweet"] = {
@@ -1751,12 +1814,56 @@ class FriendsTimelineView(APIView):
                             "like_id": None,
                             "delete_retweet_id": None,
                             "username": "Unknown User",
-                            "profile_image": "default_profile_image_url"
+                            "profile_image": "default_profile_image_url",
+                            "video_info": None
                         }
             
             timeline.append(tweet_details)
 
         return Response({"tweets": timeline, "page":page_number, "total_pages": paginator.num_pages, "total_tweets": paginator.count}, status=status.HTTP_200_OK)
+    
+    def get_video_info(self, tweet_id, video_url):
+        # command = f'curl -H "Accept: application/json" "http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"'
+        # (stdout, stderr) = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        # video_info = stdout.decode('utf-8').strip()
+        # logger.debug("video info " + video_info)
+        if "/video/" not in video_url:
+            logger.debug("not video")
+            return None
+        url = f'http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y'
+        
+        response = requests.get(url, headers={"Accept":"application/json"})
+        # video_info = response.text.strip()
+        # video_info = response.json()
+        
+            
+        
+        # if video_info:
+        #     return video_info
+        # else:
+            
+        #     raise Exception("Bad url")
+        # if response.content and response.headers.get('Content-Type') == 'application/json':
+        # try:
+        video_info = response.json()  
+        # video_info = response.strip()
+        # logger.debug("video info " + video_info)
+        # except json.JSONDecodeError:
+        #     logger.error(f"Failed to decode JSON for tweet {tweet_id}")
+        #     raise Exception("Invalid JSON response")
+        
+        logger.debug("video info " + json.dumps(video_info))
+
+        if video_info:
+            return video_info
+        else:
+            logger.error(f"No video info found for tweet {tweet_id}")
+            raise Exception("No video info found")
+        # else:
+        #     logger.error(f"Empty or invalid response for tweet {tweet_id}")
+        #     raise Exception("Empty or invalid response")
+
+       
 
 class UserTimelineView(APIView):
     permission_classes = (IsAuthenticated,)

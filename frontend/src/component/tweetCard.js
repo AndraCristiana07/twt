@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, Button, Container, Row, Col, Dropdown } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import heart_icon from "../assets/heart.svg";
@@ -26,7 +26,7 @@ export const ImagesGrid = ({ tweet, images }) => {
         navigate(`/tweet/${tweet.id}/images/${index}`);
     }
 
-  
+
     if (images.length === 1) {
         return <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
             <img key={0} src={images[0]} alt="tweet image" className="grid-image"
@@ -78,7 +78,7 @@ export const ImagesGrid = ({ tweet, images }) => {
                     onClick={(e) => {
                         e.stopPropagation();
                         handleImageNav(tweet, 0)
-                    }} 
+                    }}
                     style={{
                         objectFit: "cover",
                         width: `100%`,
@@ -95,7 +95,7 @@ export const ImagesGrid = ({ tweet, images }) => {
                     onClick={(e) => {
                         e.stopPropagation();
                         handleImageNav(tweet, 1)
-                    }} 
+                    }}
                     style={{
                         objectFit: "cover",
                         width: `100%`,
@@ -106,7 +106,7 @@ export const ImagesGrid = ({ tweet, images }) => {
                     onClick={(e) => {
                         e.stopPropagation();
                         handleImageNav(tweet, 2)
-                    }} 
+                    }}
                     style={{
                         objectFit: "cover",
                         width: `100%`,
@@ -117,7 +117,7 @@ export const ImagesGrid = ({ tweet, images }) => {
         </div>
     }
     if (images.length === 4) {
-        return <div id='images-grid' style={{  padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
+        return <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
             <div style={{
                 width: `100%`,
                 height: `50%`,
@@ -229,7 +229,7 @@ export const ImagesGrid = ({ tweet, images }) => {
 //                     height: '100%'
 //                 }}>
 //                      <source src={url} type="video/mp4" />
-                       
+
 //                 </video>
 //             )
 
@@ -254,7 +254,7 @@ export const ImagesGrid = ({ tweet, images }) => {
 //         }
 //     };
 
-    
+
 //     if (media.length === 1) {
 //         return (
 //             <div id="images-grid" style={{ padding: "5%", justifyContent: 'center' }}>
@@ -320,7 +320,7 @@ export const ImagesGrid = ({ tweet, images }) => {
 
 //     const renderMedia = (item, index) => {
 //         const fileExtension = item.split('.').pop().toLowerCase();
-        
+
 //         if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
 //             return (
 //                 <img
@@ -415,6 +415,114 @@ export const ImagesGrid = ({ tweet, images }) => {
 //     return renderGrid();
 // };
 
+
+export const VideoPlayer = ({ tweet }) => {
+    //video stream
+    const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
+    const seaweedfs = tweet.video_info;
+
+    const videoRef = useRef(null);
+    const [mediaSource, setMediaSource] = useState(null);
+
+    useEffect(() => {
+        try {
+            if (!mediaSource && videoRef.current !== null) {
+                const newMediaSource = new MediaSource();
+                videoRef.current.src = URL.createObjectURL(newMediaSource);
+                setMediaSource(newMediaSource);
+
+                const videoChunks = seaweedfs.Entries[2].chunks
+                let currSize = 0
+
+                newMediaSource.onsourceopen = async () => {
+                    console.log(`${newMediaSource.readyState} should be 'open'`); // open
+
+                    console.log(MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001f, mp4a.40.2"'))
+
+                    const sourceBuffer = newMediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001f, mp4a.40.2"');
+
+                    newMediaSource.duration = 999999999
+                    const newVideoChunks = videoChunks.filter((val, idx) => {
+                        return idx <= 10 || idx > 30
+                    })
+
+                    for (const chunk of videoChunks) {
+
+                        currSize += chunk.size / 10e+5
+
+                        // let chunk_idx = videoChunks.indexOf(chunk)
+
+                        if (currSize > 110) {
+                            break
+                        }
+
+                        const fetchedChunk = await videoFetch(chunk.file_id);
+                        await new Promise((resolve) => {
+                            console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
+                            sourceBuffer.onupdateend = () => {
+                                console.log('finish. Ready for next chunk...');
+                                resolve();
+                            };
+                            sourceBuffer.onupdatestart = () => {
+                                console.log('start update');
+                            }
+                            sourceBuffer.onerror = (err) => {
+                                console.error('sourceBuffer error:', err)
+                            }
+                            sourceBuffer.appendBuffer(fetchedChunk);
+                        });
+                    }
+                    // newMediaSource.endOfStream()
+                };
+
+                videoRef.current.onerror = (err) => {
+                    console.error(
+                        `Error ${JSON.stringify(err)} ${JSON.stringify(err, ["message", "arguments", "type", "name"])}`, err
+                    );
+                };
+
+                console.log(videoRef.current)
+
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }, [mediaSource]);
+
+    const videoFetch = async (path) => {
+        const url = `http://192.168.0.138:8080/${path}`
+        const accessToken = localStorage.getItem('access_token');
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            responseType: 'arraybuffer'
+        };
+        try {
+            const response = await axiosInstance.get(url, config);
+            return response.data;
+
+        } catch (error) {
+            console.error('Error fetching video ', error)
+        }
+    }
+
+
+    return <video
+        ref={videoRef}
+        controls
+        muted={false}
+        style={{
+            objectFit: "cover",
+            width: '100%',
+            // height: '100%'
+        }}
+        src={null}
+    />
+}
+
+
 export const TweetCard = ({
     tweet,
     originalTweetImg,
@@ -422,7 +530,7 @@ export const TweetCard = ({
     handleUnlike,
     handleRetweet,
     handleUnretweet,
-    
+
 }) => {
     const navigate = useNavigate();
     const [showPostCommentDialog, setShowPostCommentDialog] = React.useState(false);
@@ -432,6 +540,7 @@ export const TweetCard = ({
     const [modalIndex, setModalIndex] = useState(0);
     const [images, setImages] = useState([]);
     const [videos, setVideos] = useState([])
+    const [videoInfo, setVideoInfo] = useState();
     const [ogTweetImages, setOgTweetImages] = useState([]);
     const [imageProfile, setImageProfile] = useState(null);
     const [profileImageURL, setProfileImageURL] = useState();
@@ -498,6 +607,7 @@ export const TweetCard = ({
             // TODO
         }
     }
+
 
     // useEffect(() => {
     //     const f = async () => {
@@ -617,6 +727,8 @@ export const TweetCard = ({
         fetchImages();
         fetchUserInfo(tweet.user_id)
         fetchProfileImage();
+        setVideoInfo(tweet.video_info)
+        // console.log(videoInfo)
 
     }, [tweet, profileImageURL])
 
@@ -631,14 +743,15 @@ export const TweetCard = ({
     const tweetHeader = (tweet) => {
         return (
             <>
-            {tweet && (
+                {console.log("info" + JSON.stringify(videoInfo))}
+                {tweet && (
 
-                <><Row>
+                    <><Row>
                         <Col xs={2}>
                             <Card.Title onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/profile/${tweet.user_id}`);
-                            } }>
+                            }}>
                                 <img src={imageProfile} alt="icon" style={{ borderRadius: "50%", width: "1.5em", height: "1.5em" }} />
                                 @{tweet.username}
                             </Card.Title>
@@ -646,7 +759,7 @@ export const TweetCard = ({
                         {tweet.user_id === currUserId && (
                             <Col>
                                 {tweet.retweet_id === null &&
-                                    <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); } } />}
+                                    <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
                             </Col>
                         )}
                     </Row><Row>
@@ -655,10 +768,10 @@ export const TweetCard = ({
                             </Card.Text>
                             <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
                         </Row></>
-            )}
-            {!tweet && (
-                <Row> </Row>
-            )}
+                )}
+                {!tweet && (
+                    <Row> </Row>
+                )}
 
             </>
         )
@@ -669,81 +782,81 @@ export const TweetCard = ({
             <div style={{ display: "flex", justifyContent: 'center' }}>
                 {images.length > 0 && (<ImagesGrid tweet={tweet} images={images} />)}
             </div>
-            
+
         )
     }
 
     const tweetButtons = (tweet, originalTweet) => {
         return (
             <>
-            {tweet && (
-                
-            <Row onClick={(e) => e.stopPropagation()}>
-                <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={originalTweet.id} />
-                <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={originalTweet.id} />
+                {tweet && (
 
-                <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }}
-                    onClick={handleOpenDialog}>
-                    <img src={comment_icon} alt="Comment" width={"20px"} />
-                    <span style={{ color: "black" }} className="ms-1">{originalTweet.comments}</span>
-                </Button>
+                    <Row onClick={(e) => e.stopPropagation()}>
+                        <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={originalTweet.id} />
+                        <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={originalTweet.id} />
 
-                <Button className="but" onClick={(e) => {
-                    e.stopPropagation();
-                    originalTweet.isLiked ? handleUnlike(originalTweet.id, originalTweet.like_id) : handleLike(originalTweet.id);
-                }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                    <img src={originalTweet.isLiked ? heart_icon_red : heart_icon} alt="Like" width={"20px"} />
-                    <span style={{ color: "black" }} className="ms-1">{originalTweet.likes}</span>
-                </Button>
-                {originalTweet.isRetweeted ? (
-                    // <Button className="but" style={{background: "transparent", border: "none", width: "80px"}}
-                    //         onClick={(e) => {
-                    //             e.stopPropagation();
-                    //             handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
-                    //         }}>
-                    //     <img src={retweet_icon_red} alt="Retweet" width={"20px"}/>
-                    //     <span style={{color: "black"}} className="ms-1">{originalTweet.retweets}</span>
-                    // </Button>
-                    <Dropdown onClick={(e) => {
-                        e.stopPropagation();
-                    }} id="dropdown-basic-button" className="but"
-                        style={{ background: "transparent", border: "none", width: "80px" }}>
-                        <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
-                            <img src={retweet_icon_red} alt="Retweet" width={"20px"} />
-                            <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                            <Dropdown.Item onClick={(e) => {
-                                handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
-                            }}>Delete Retweet</Dropdown.Item>
-                            <Dropdown.Item onClick={(e) => {
-                                handleOpenQuoteDialog(e);
-                            }}>Quote Retweet</Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown>
-                ) :
-                    (
-                        <Dropdown onClick={(e) => {
+                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }}
+                            onClick={handleOpenDialog}>
+                            <img src={comment_icon} alt="Comment" width={"20px"} />
+                            <span style={{ color: "black" }} className="ms-1">{originalTweet.comments}</span>
+                        </Button>
+
+                        <Button className="but" onClick={(e) => {
                             e.stopPropagation();
-                        }} id="dropdown-basic-button" className="but"
-                            style={{ background: "transparent", border: "none", width: "80px" }}>
-                            <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
-                                <img src={retweet_icon} alt="Retweet" width={"20px"} />
-                                <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                                <Dropdown.Item onClick={(e) => {
-                                    handleRetweet(originalTweet.id);
-                                }}>Retweet</Dropdown.Item>
-                                <Dropdown.Item onClick={(e) => {
-                                    handleOpenQuoteDialog(e);
-                                }}>Quote Retweet</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                    )}
-            </Row>
-            )}
-        </>
+                            originalTweet.isLiked ? handleUnlike(originalTweet.id, originalTweet.like_id) : handleLike(originalTweet.id);
+                        }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                            <img src={originalTweet.isLiked ? heart_icon_red : heart_icon} alt="Like" width={"20px"} />
+                            <span style={{ color: "black" }} className="ms-1">{originalTweet.likes}</span>
+                        </Button>
+                        {originalTweet.isRetweeted ? (
+                            // <Button className="but" style={{background: "transparent", border: "none", width: "80px"}}
+                            //         onClick={(e) => {
+                            //             e.stopPropagation();
+                            //             handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
+                            //         }}>
+                            //     <img src={retweet_icon_red} alt="Retweet" width={"20px"}/>
+                            //     <span style={{color: "black"}} className="ms-1">{originalTweet.retweets}</span>
+                            // </Button>
+                            <Dropdown onClick={(e) => {
+                                e.stopPropagation();
+                            }} id="dropdown-basic-button" className="but"
+                                style={{ background: "transparent", border: "none", width: "80px" }}>
+                                <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
+                                    <img src={retweet_icon_red} alt="Retweet" width={"20px"} />
+                                    <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    <Dropdown.Item onClick={(e) => {
+                                        handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
+                                    }}>Delete Retweet</Dropdown.Item>
+                                    <Dropdown.Item onClick={(e) => {
+                                        handleOpenQuoteDialog(e);
+                                    }}>Quote Retweet</Dropdown.Item>
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        ) :
+                            (
+                                <Dropdown onClick={(e) => {
+                                    e.stopPropagation();
+                                }} id="dropdown-basic-button" className="but"
+                                    style={{ background: "transparent", border: "none", width: "80px" }}>
+                                    <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
+                                        <img src={retweet_icon} alt="Retweet" width={"20px"} />
+                                        <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu>
+                                        <Dropdown.Item onClick={(e) => {
+                                            handleRetweet(originalTweet.id);
+                                        }}>Retweet</Dropdown.Item>
+                                        <Dropdown.Item onClick={(e) => {
+                                            handleOpenQuoteDialog(e);
+                                        }}>Quote Retweet</Dropdown.Item>
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            )}
+                    </Row>
+                )}
+            </>
 
 
         )
@@ -752,21 +865,21 @@ export const TweetCard = ({
     const tweetDate = (tweet) => {
         return (
             <>
-            {tweet && (
+                {tweet && (
 
-            
-                <Row>
-                    <Card.Subtitle className="text-muted">
-                        Created at: {new Date(tweet.created_at).toLocaleString()}
-                    </Card.Subtitle>
-                </Row>
+
+                    <Row>
+                        <Card.Subtitle className="text-muted">
+                            Created at: {new Date(tweet.created_at).toLocaleString()}
+                        </Card.Subtitle>
+                    </Row>
                 )}
             </>
         )
     }
 
     return (
-        <Card key={tweet.id}  className="mb-4 tweet-card"  onClick={() => {
+        <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
             navigate(`/tweet/${tweet.id}`)
         }}>
             {tweet.retweet_id !== null && (
