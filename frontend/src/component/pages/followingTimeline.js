@@ -2202,9 +2202,11 @@ export const FollowingTimeline = () => {
           withCredentials: true
         }
       );
+      setError("")
       setSuccess("Tweet posted successfully!");
     } catch (error) {
       setError("Failed to post tweet.");
+      setSuccess("");
       console.error('Error posting tweet:', error);
     }
   };
