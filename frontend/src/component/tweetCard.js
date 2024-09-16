@@ -14,7 +14,7 @@ import "../css/image-grid.css"
 import default_profile from "../assets/default_profile.png"
 import deleteImg from '../assets/delete.svg';
 
-import { Grid } from "@mui/material";
+import { duration, Grid } from "@mui/material";
 import { DeleteDialog } from './modals/deleteTweetDialog';
 
 export const ImagesGrid = ({ tweet, images }) => {
@@ -416,97 +416,88 @@ export const ImagesGrid = ({ tweet, images }) => {
 // };
 
 
-export const VideoPlayer = ({ tweet }) => {
-    //video stream
-    
-    var time = tweet.duration.split(":")
-    
-    var duration = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
 
-    console.log("durationtype " + typeof(duration))
+
+export const VideoPlayer = ({ tweet }) => {
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
     const seaweedfs = tweet.video_info;
 
-    const videoRef = useRef(null);
-    const [mediaSource, setMediaSource] = useState(null);
-    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm') 
+    const videoRefs = useRef([]);
+    const [mediaSources, setMediaSources] = useState([]);
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm');
 
     useEffect(() => {
-        const mediaUrl = tweet.image_urls
-
-        // const imageArray = mediaUrl.filter((fileUrl)=> isImage(fileUrl))
-        const videoArray = mediaUrl.filter((fileUrl)=> isVideo(fileUrl))
-        console.log("videos array " + videoArray)
+        const mediaUrl = tweet.image_urls;
+        const durations = tweet.duration;
+        const videoArray = mediaUrl.filter((fileUrl) => isVideo(fileUrl));
         try {
-            if (videoArray && !mediaSource && videoRef.current !== null) {
-                const newMediaSource = new MediaSource();
-                videoRef.current.src = URL.createObjectURL(newMediaSource);
-                setMediaSource(newMediaSource);
-                console.log(" seaweed info " + JSON.stringify(seaweedfs.Entries[0].chunks))
-                const videoChunks = seaweedfs.Entries[0].chunks
-                let currSize = 0
 
-                newMediaSource.onsourceopen = async () => {
-                    console.log(`${newMediaSource.readyState} should be 'open'`); // open
+            if (videoArray.length > 0 && seaweedfs.Entries.length > 0 && videoRefs.current.length > 0) {
+                const newMediaSources = videoArray.map(() => new MediaSource());
+                setMediaSources(newMediaSources);
 
-                    console.log(MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001f, mp4a.40.2"'))
+                newMediaSources.forEach((mediaSource, index) => {
+                    if (videoRefs.current[index]) {
+                        videoRefs.current[index].src = URL.createObjectURL(mediaSource);
+                        var time = durations[index].split(":")
+                        var durationSeconds = parseInt(time[0]) * 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1])* 0.001;
+                
+                        console.log("duration for vid " + durationSeconds )
+                        const videoChunks = seaweedfs.Entries[index].chunks;
 
-                    const sourceBuffer = newMediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001f, mp4a.40.2"');
-                    console.log("dur type" +typeof(duration) + duration)
-                    
-                    newMediaSource.duration = duration
-                    // const newVideoChunks = videoChunks.filter((val, idx) => {
-                    //     return idx <= 10 || idx > 30
-                    // })
-                    if (videoChunks) {
+                        mediaSource.onsourceopen = async () => {
+                            console.log(`${mediaSource.readyState} should be 'open'`); // open
+                            console.log(MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001f, mp4a.40.2"'))
 
-                        for (const chunk of videoChunks) {
+                            const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001f, mp4a.40.2"');
+                            console.log("duration in seconds " + durationSeconds)
+                            mediaSource.duration = durationSeconds
+                            let currSize = 0;
+                            if (videoChunks) {
+                                try {
+                                    for (const chunk of videoChunks) {
+                                        currSize += chunk.size / 10e+5;
 
-                            currSize += chunk.size / 10e+5
+                                        if (currSize > 110) {
+                                            break;
+                                        }
 
-                            // let chunk_idx = videoChunks.indexOf(chunk)
+                                        const fetchedChunk = await videoFetch(chunk.file_id);
+                                        
+                                        await new Promise((resolve) => {
+                                            console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
 
-                            if (currSize > 110) {
-                                break
+                                            sourceBuffer.onupdateend = () => {
+                                                console.log('Chunk appended successfully');
+                                                resolve();
+                                            };
+                                            sourceBuffer.onupdatestart = () => {
+                                                console.log('start update');
+                                            }
+                                            sourceBuffer.onerror = (err) => {
+                                                console.error('sourceBuffer error:', err)
+                                            };
+                                            sourceBuffer.appendBuffer(fetchedChunk);
+
+                                        });
+                                    }
+                                    // mediaSource.endOfStream();
+                                } catch (e) {
+                                    console.error(e)
+                                }
                             }
-
-                            const fetchedChunk = await videoFetch(chunk.file_id);
-                            await new Promise((resolve) => {
-                                console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
-                                sourceBuffer.onupdateend = () => {
-                                    console.log('finish. Ready for next chunk...');
-                                    resolve();
-                                };
-                                sourceBuffer.onupdatestart = () => {
-                                    console.log('start update');
-                                }
-                                sourceBuffer.onerror = (err) => {
-                                    console.error('sourceBuffer error:', err)
-                                }
-                                sourceBuffer.appendBuffer(fetchedChunk);
-                            });
-                        }
+                        };
                     }
-
-                    // newMediaSource.endOfStream()
-                };
-
-                videoRef.current.onerror = (err) => {
-                    console.error(
-                        `Error ${JSON.stringify(err)} ${JSON.stringify(err, ["message", "arguments", "type", "name"])}`, err
-                    );
-                };
-
-                console.log("videoref curr" + videoRef.current)
-
+                });
             }
-        } catch (e) {
-            console.error(e)
+        } catch(e) {
+            console.log(e);
         }
-    }, [mediaSource]);
+
+    }, [tweet]);
 
     const videoFetch = async (path) => {
-        const url = `http://192.168.0.138:8080/${path}`
+        const url = `http://192.168.0.138:8080/${path}`;
         const accessToken = localStorage.getItem('access_token');
         const config = {
             headers: {
@@ -518,27 +509,26 @@ export const VideoPlayer = ({ tweet }) => {
         try {
             const response = await axiosInstance.get(url, config);
             return response.data;
-
         } catch (error) {
-            console.error('Error fetching video ', error)
+            console.error('Error fetching video ', error);
         }
-    }
-    console.log("videoRef" + videoRef)
+    };
 
-
-    return <video
-        ref={videoRef}
-        controls
-        muted={false}
-        style={{
-            objectFit: "cover",
-            width: '100%',
-            // height: '100%'
-        }}
-        src={null}
-    />
-}
-
+    return (
+        <div>
+            {tweet.video_info.Entries.map((entry, index) => (
+                <video
+                    key={index}
+                    ref={(elem) => videoRefs.current[index] = elem}
+                    controls
+                    muted={false}
+                    style={{ objectFit: "cover", width: '100%' }}
+                    src={null}
+                />
+            ))}
+        </div>
+    );
+};
 
 export const TweetCard = ({
     tweet,
@@ -626,10 +616,10 @@ export const TweetCard = ({
     }
 
     // console.log("time duration " + tweet.duration)
-    var time = tweet.duration.split(":")
+    // var time = tweet.duration.split(":")
     // console.log("time duration days " + time[1].replace(/[\[\]']/g, ''))
     // console.log("timeee " + time[2].split('.')[1].replace('\]', "").replace('\'', ""))
-    var sec = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
+    // var sec = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
     // console.log("SECS "  + typeof(sec) + sec)
     // useEffect(() => {
     //     const f = async () => {

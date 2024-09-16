@@ -1900,11 +1900,7 @@ class FriendsTimelineView(APIView):
             logger.debug("media url " + str(media_url))
             video_info = self.get_video_info(tweet_id, str(media_url))
             # duration = self.get_video_duration(tweet_id,session)
-            duration = session.execute(
-                "SELECT video_duration FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
-                (tweet_id,),
-            ).one()
-            duration_str = str(duration.video_duration) if duration else None
+    
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1912,6 +1908,7 @@ class FriendsTimelineView(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,  
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -1922,7 +1919,6 @@ class FriendsTimelineView(APIView):
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
                 "video_info": video_info if video_info else None,
-                "duration": duration_str 
             }
 
             if result and result.retweet_id:
@@ -1968,13 +1964,7 @@ class FriendsTimelineView(APIView):
                     )
                     media_url = original_tweet.image_urls
                     video_info = self.get_video_info(original_tweet_id, media_url)
-                    # duration = self.get_video_duration(original_tweet_id,session)
-                    duration = session.execute(
-                        "SELECT video_duration FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
-                        (original_tweet_id,),
-                    ).one()
-                    duration_str = str(duration.video_duration) if duration else None
-           
+        
                     if original_tweet:
                         tweet_details["original_tweet"] = {
                             "id": str(original_tweet_id),
@@ -1987,6 +1977,7 @@ class FriendsTimelineView(APIView):
                             "created_at": original_tweet.created_at,
                             "retweet_id": original_tweet.retweet_id,
                             "image_urls": original_tweet.image_urls,
+                            "duration": original_tweet.video_duration,
                             "likes": original_tweet.likes,
                             "comments": original_tweet.comments,
                             "retweets": original_tweet.retweets,
@@ -1997,7 +1988,6 @@ class FriendsTimelineView(APIView):
                             "username": original_tweet_username,
                             "profile_image": original_tweet_profile_image,
                             "video_info": video_info if video_info else None,
-                            "duration": duration_str 
                         }
                     else:
                         tweet_details["original_tweet"] = {
