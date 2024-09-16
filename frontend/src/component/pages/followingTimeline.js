@@ -2061,6 +2061,7 @@ export const FollowingTimeline = () => {
       );
 
       setTweets(response.data.tweets)
+      console.log("tweet data "+ JSON.stringify(response.data.tweets))
       setTotalTweets(response.data.total_tweets)
       setTotalPages(response.data.total_pages)
       setHasMore(page < response.data.total_pages)

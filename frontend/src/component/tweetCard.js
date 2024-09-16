@@ -418,20 +418,32 @@ export const ImagesGrid = ({ tweet, images }) => {
 
 export const VideoPlayer = ({ tweet }) => {
     //video stream
+    
+    var time = tweet.duration.split(":")
+    
+    var duration = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
+
+    console.log("durationtype " + typeof(duration))
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
     const seaweedfs = tweet.video_info;
 
     const videoRef = useRef(null);
     const [mediaSource, setMediaSource] = useState(null);
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm') 
 
     useEffect(() => {
+        const mediaUrl = tweet.image_urls
+
+        // const imageArray = mediaUrl.filter((fileUrl)=> isImage(fileUrl))
+        const videoArray = mediaUrl.filter((fileUrl)=> isVideo(fileUrl))
+        console.log("videos array " + videoArray)
         try {
-            if (!mediaSource && videoRef.current !== null) {
+            if (videoArray && !mediaSource && videoRef.current !== null) {
                 const newMediaSource = new MediaSource();
                 videoRef.current.src = URL.createObjectURL(newMediaSource);
                 setMediaSource(newMediaSource);
-
-                const videoChunks = seaweedfs.Entries[2].chunks
+                console.log(" seaweed info " + JSON.stringify(seaweedfs.Entries[0].chunks))
+                const videoChunks = seaweedfs.Entries[0].chunks
                 let currSize = 0
 
                 newMediaSource.onsourceopen = async () => {
@@ -440,38 +452,42 @@ export const VideoPlayer = ({ tweet }) => {
                     console.log(MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001f, mp4a.40.2"'))
 
                     const sourceBuffer = newMediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001f, mp4a.40.2"');
+                    console.log("dur type" +typeof(duration) + duration)
+                    
+                    newMediaSource.duration = duration
+                    // const newVideoChunks = videoChunks.filter((val, idx) => {
+                    //     return idx <= 10 || idx > 30
+                    // })
+                    if (videoChunks) {
 
-                    newMediaSource.duration = 999999999
-                    const newVideoChunks = videoChunks.filter((val, idx) => {
-                        return idx <= 10 || idx > 30
-                    })
+                        for (const chunk of videoChunks) {
 
-                    for (const chunk of videoChunks) {
+                            currSize += chunk.size / 10e+5
 
-                        currSize += chunk.size / 10e+5
+                            // let chunk_idx = videoChunks.indexOf(chunk)
 
-                        // let chunk_idx = videoChunks.indexOf(chunk)
+                            if (currSize > 110) {
+                                break
+                            }
 
-                        if (currSize > 110) {
-                            break
+                            const fetchedChunk = await videoFetch(chunk.file_id);
+                            await new Promise((resolve) => {
+                                console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
+                                sourceBuffer.onupdateend = () => {
+                                    console.log('finish. Ready for next chunk...');
+                                    resolve();
+                                };
+                                sourceBuffer.onupdatestart = () => {
+                                    console.log('start update');
+                                }
+                                sourceBuffer.onerror = (err) => {
+                                    console.error('sourceBuffer error:', err)
+                                }
+                                sourceBuffer.appendBuffer(fetchedChunk);
+                            });
                         }
-
-                        const fetchedChunk = await videoFetch(chunk.file_id);
-                        await new Promise((resolve) => {
-                            console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
-                            sourceBuffer.onupdateend = () => {
-                                console.log('finish. Ready for next chunk...');
-                                resolve();
-                            };
-                            sourceBuffer.onupdatestart = () => {
-                                console.log('start update');
-                            }
-                            sourceBuffer.onerror = (err) => {
-                                console.error('sourceBuffer error:', err)
-                            }
-                            sourceBuffer.appendBuffer(fetchedChunk);
-                        });
                     }
+
                     // newMediaSource.endOfStream()
                 };
 
@@ -481,7 +497,7 @@ export const VideoPlayer = ({ tweet }) => {
                     );
                 };
 
-                console.log(videoRef.current)
+                console.log("videoref curr" + videoRef.current)
 
             }
         } catch (e) {
@@ -507,6 +523,7 @@ export const VideoPlayer = ({ tweet }) => {
             console.error('Error fetching video ', error)
         }
     }
+    console.log("videoRef" + videoRef)
 
 
     return <video
@@ -608,7 +625,12 @@ export const TweetCard = ({
         }
     }
 
-
+    // console.log("time duration " + tweet.duration)
+    var time = tweet.duration.split(":")
+    // console.log("time duration days " + time[1].replace(/[\[\]']/g, ''))
+    // console.log("timeee " + time[2].split('.')[1].replace('\]', "").replace('\'', ""))
+    var sec = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
+    // console.log("SECS "  + typeof(sec) + sec)
     // useEffect(() => {
     //     const f = async () => {
     //         const fetchedImages = await Promise.all(
@@ -687,14 +709,24 @@ export const TweetCard = ({
     //         f();
     //     }  
     // }, [tweet]);
+    
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm') 
+    const isImage = (url) => url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg') 
+
     useEffect(() => {
+        const mediaUrl = tweet.image_urls
+
+        const imageArray = mediaUrl.filter((fileUrl)=> isImage(fileUrl))
+        const videoArray = mediaUrl.filter((fileUrl)=> isVideo(fileUrl))
+
         const fetchImages = async () => {
             let images = [];
             let ogImages = [];
+            let videos = [];
 
-            if (tweet.image_urls && tweet.image_urls.length > 0) {
+            if (imageArray && imageArray.length > 0) {
                 const fetchedImages = await Promise.all(
-                    tweet.image_urls.map(async (url) => await imageFetch(url))
+                    imageArray.map(async (url) => await imageFetch(url))
                 );
                 images = images.concat(fetchedImages)
                 // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
@@ -707,8 +739,24 @@ export const TweetCard = ({
                 setImages(images)
                 // setOgTweetImages(ogImages);
             }
+            // if (videoArray && videoArray.ength > 0) {
+            //     const fetchedImages = await Promise.all(
+            //         videoArray.map(async (url) => await imageFetch(url))
+            //     );
+            //     videos = videos.concat(fetchedImages)
+            //     // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
+            //     //     const fetchedOgImages = await Promise.all(
+            //     //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
+            //     //     );
+            //     //     ogImages = ogImages.concat(fetchedOgImages)
+            //     // }
+
+            //     setVideos(videos)
+            //     // setOgTweetImages(ogImages);
+            // }
 
 
+            // TODO: for videos too
             if (tweet.original_tweet && tweet.original_tweet.image_urls) {
                 const fetchedOgImages = await Promise.all(
                     tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
@@ -779,9 +827,17 @@ export const TweetCard = ({
 
     const tweetImages = (tweet, images) => {
         return (
-            <div style={{ display: "flex", justifyContent: 'center' }}>
+            <><div style={{ display: "flex", justifyContent: 'center' }}>
                 {images.length > 0 && (<ImagesGrid tweet={tweet} images={images} />)}
             </div>
+            <div style={{ display: "flex", justifyContent: 'center' }}>
+            {/* { videoArray.map((video, index) => (
+                    <div key={index}> */}
+                        <VideoPlayer tweet={tweet} />
+                    {/* </div>
+            ))} */}
+                {/* {videos.length > 0 && (<VideoPlayer tweet={tweet} videos={videos} />)} */}
+            </div></>
 
         )
     }
@@ -878,6 +934,7 @@ export const TweetCard = ({
         )
     }
 
+  
     return (
         <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
             navigate(`/tweet/${tweet.id}`)
@@ -894,7 +951,7 @@ export const TweetCard = ({
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
                                 {tweetHeader(tweet.original_tweet)}
-                                {tweetImages(tweet.original_tweet, images)}
+                                {tweetImages(tweet.original_tweet, images,videos)}
                                 {tweetButtons(tweet, tweet.original_tweet)}
                             </Container>
                         )}
@@ -903,10 +960,11 @@ export const TweetCard = ({
                                 <Row>
                                     <Col>{tweet.content}</Col>
                                 </Row>
-                                {tweetImages(tweet, images)}
+                                {tweetImages(tweet, images,videos)}
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
-                                    {tweetImages(tweet.original_tweet, ogTweetImages)}
+                                    {/* TODO: change videos for ogtweet */}
+                                    {tweetImages(tweet.original_tweet, ogTweetImages,videos)}
                                     {tweetDate(tweet)}
                                 </Card>
                                 {tweet.original_tweet && tweetButtons(tweet.original_tweet, tweet)}
@@ -919,7 +977,7 @@ export const TweetCard = ({
                 // <Card.Body>
                 <div>
                     {tweetHeader(tweet)}
-                    {tweetImages(tweet, images)}
+                    {tweetImages(tweet, images,videos)}
                     {tweetDate(tweet)}
                     {tweetButtons(tweet, tweet)}
                 </div>

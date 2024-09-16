@@ -1899,7 +1899,12 @@ class FriendsTimelineView(APIView):
             media_url = tweet.image_urls
             logger.debug("media url " + str(media_url))
             video_info = self.get_video_info(tweet_id, str(media_url))
-
+            # duration = self.get_video_duration(tweet_id,session)
+            duration = session.execute(
+                "SELECT video_duration FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                (tweet_id,),
+            ).one()
+            duration_str = str(duration.video_duration) if duration else None
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1917,6 +1922,7 @@ class FriendsTimelineView(APIView):
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
                 "video_info": video_info if video_info else None,
+                "duration": duration_str 
             }
 
             if result and result.retweet_id:
@@ -1962,6 +1968,13 @@ class FriendsTimelineView(APIView):
                     )
                     media_url = original_tweet.image_urls
                     video_info = self.get_video_info(original_tweet_id, media_url)
+                    # duration = self.get_video_duration(original_tweet_id,session)
+                    duration = session.execute(
+                        "SELECT video_duration FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                        (original_tweet_id,),
+                    ).one()
+                    duration_str = str(duration.video_duration) if duration else None
+           
                     if original_tweet:
                         tweet_details["original_tweet"] = {
                             "id": str(original_tweet_id),
@@ -1984,6 +1997,7 @@ class FriendsTimelineView(APIView):
                             "username": original_tweet_username,
                             "profile_image": original_tweet_profile_image,
                             "video_info": video_info if video_info else None,
+                            "duration": duration_str 
                         }
                     else:
                         tweet_details["original_tweet"] = {
@@ -2003,6 +2017,7 @@ class FriendsTimelineView(APIView):
                             "username": "Unknown User",
                             "profile_image": "default_profile_image_url",
                             "video_info": None,
+                            "duration":None
                         }
 
             timeline.append(tweet_details)
@@ -2017,6 +2032,13 @@ class FriendsTimelineView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    # def get_video_duration(self, tweet_id,session):
+        
+    #     duration = session.execute(
+    #                     "SELECT video_duration FROM twitter.tweets WHERE tweet_id = %s ALLOW FILTERING",
+    #                     (tweet_id),
+    #                 ).one()
+    #     return duration
     def get_video_info(self, tweet_id, video_url):
         # command = f'curl -H "Accept: application/json" "http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"'
         # (stdout, stderr) = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
