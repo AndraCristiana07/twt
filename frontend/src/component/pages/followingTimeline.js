@@ -2061,7 +2061,7 @@ export const FollowingTimeline = () => {
       );
 
       setTweets(response.data.tweets)
-      console.log("tweet data "+ JSON.stringify(response.data.tweets))
+      // console.log("tweet data "+ JSON.stringify(response.data.tweets))
       setTotalTweets(response.data.total_tweets)
       setTotalPages(response.data.total_pages)
       setHasMore(page < response.data.total_pages)
@@ -2223,7 +2223,7 @@ export const FollowingTimeline = () => {
 
   return (
     <>
-      <VideoPlayer></VideoPlayer>
+      {/* <VideoPlayer></VideoPlayer> */}
       <Container fluid>
         <Card className="mt-5">
           <Card.Body>

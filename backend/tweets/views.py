@@ -239,6 +239,8 @@ class PostTweetView(APIView):
         logging.debug("creating process")
         p = subprocess.Popen(
             f"ffmpeg -f mp4 -i {pipe_fifo} -c copy -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -acodec aac -vcodec copy {output_path}",
+            # f"ffmpeg -f mp4 -i {pipe_fifo} -c copy -f mp4 -movflags frag_keyframe+empty_moov+default_base_moof -acodec aac  segment -segment_time 10 -vcodec copy -reset_timestamps 1 -map 0 {output_path}",
+            
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -373,7 +375,9 @@ class GetSingleTweetView(APIView):
             (tweet_id, user_id),
         ).one()
         delete_retweet_id = str(retweet.id) if retweet else None
-
+        media_url = tweet.image_urls
+        video_info = self.get_video_info(tweet_id, str(media_url))
+        
         try:
             user = User.objects.get(id=tweet.user_id)
         except User.DoesNotExist:
@@ -428,6 +432,9 @@ class GetSingleTweetView(APIView):
             original_tweet_delete_retweet_id = (
                 str(original_tweet_retweet.id) if retweet else None
             )
+            original_tweet_media_url = original_tweet.image_urls
+            original_tweet_video_info = self.get_video_info(original_tweet_id, original_tweet_media_url)
+        
 
             return Response(
                 {
@@ -445,6 +452,9 @@ class GetSingleTweetView(APIView):
                     "isRetweeted": bool(isRetweeted),
                     "like_id": like_id,
                     "delete_retweet_id": delete_retweet_id,
+                    "video_info": video_info if video_info else None,
+                    "duration": tweet.video_duration,  
+
                     "original_tweet": {
                         "id": str(original_tweet_id),
                         "user_id": original_tweet.user_id,
@@ -460,6 +470,10 @@ class GetSingleTweetView(APIView):
                         "like_id": original_tweet_like_id,
                         "delete_retweet_id": original_tweet_delete_retweet_id,
                         "username": original_tweet_username,
+                        "video_info": original_tweet_video_info if original_tweet_video_info else None,
+                        "duration": original_tweet.video_duration,  
+                        
+                        
                     },
                 },
                 status=status.HTTP_200_OK,
@@ -481,9 +495,30 @@ class GetSingleTweetView(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
+                "duration": tweet.video_duration,  
             },
             status=status.HTTP_200_OK,
         )
+    def get_video_info(self, tweet_id, video_url):
+        
+        if "/video/" not in video_url:
+            logger.debug("not video")
+            return None
+        url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"
+
+        response = requests.get(url, headers={"Accept": "application/json"})
+    
+        video_info = response.json()
+    
+        logger.debug("video info " + json.dumps(video_info))
+
+        if video_info:
+            return video_info
+        else:
+            logger.error(f"No video info found for tweet {tweet_id}")
+            raise Exception("No video info found")
+    
 
 
 class GetSingleRetweetView(APIView):

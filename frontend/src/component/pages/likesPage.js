@@ -294,7 +294,7 @@ export const LikesPage = () => {
 
                             {tweets.length > 0 ? (
                                 tweets.map(tweet => (
-                      
+                    
                                 <TweetCard
                                         key={tweet.id}
                                         originalTweetImg={tweet.original_tweet}

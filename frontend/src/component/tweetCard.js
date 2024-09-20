@@ -16,519 +16,9 @@ import deleteImg from '../assets/delete.svg';
 
 import { duration, Grid } from "@mui/material";
 import { DeleteDialog } from './modals/deleteTweetDialog';
+import { VideoPlayer } from './videoPlayer';
+import { ImagesGrid } from './imageGrid';
 
-export const ImagesGrid = ({ tweet, images }) => {
-    const navigate = useNavigate();
-
-    let gridSize = [150, 300] // w&h
-
-    const handleImageNav = (tweet, index) => {
-        navigate(`/tweet/${tweet.id}/images/${index}`);
-    }
-
-
-    if (images.length === 1) {
-        return <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-            <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 0)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `100%`,
-                    height: `100%`
-                }}
-            />
-        </div>
-    }
-    if (images.length === 2) {
-        return <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-            <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 0)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `50%`,
-                    height: `100%`
-                }}
-            />
-            <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 1)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `50%`,
-                    height: `100%`
-                }}
-            />
-        </div>
-    }
-    if (images.length === 3) {
-        return <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "row", justifyContent: 'center' }}>
-            <div style={{
-                width: `50%`,
-                height: `100%`
-            }}>
-                <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 0)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-            <div style={{
-                display: 'flex', flexDirection: 'column',
-                width: `50%`,
-                height: `100%`
-            }}>
-                <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 1)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `50%`
-                    }}
-                />
-                <img key={2} src={images[2]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 2)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `50%`
-                    }}
-                />
-            </div>
-        </div>
-    }
-    if (images.length === 4) {
-        return <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
-            <div style={{
-                width: `100%`,
-                height: `50%`,
-                display: 'flex',
-                flexDirection: 'row'
-            }}>
-                <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 0)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-                <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 1)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-            <div style={{
-                display: 'flex', flexDirection: 'row',
-                width: `100%`,
-                height: `50%`
-            }}>
-                <img key={2} src={images[2]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 2)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-                <img key={3} src={images[3]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 3)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-        </div>
-    }
-
-
-    // return (<div>
-    //     {/*<h1>WIP</h1>*/}
-    //     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
-    //         {images.map((image, index) => (
-    //             //     <div key={index}>
-
-
-    //             //    {handleExtension(image,index)}
-    //             //    </div>
-
-    //             <img key={index} src={image} alt="tweet image" className="grid-image"
-    //                 onClick={(e) => {
-    //                     e.stopPropagation();
-    //                     handleImageNav(tweet, index)
-    //                 }} // TODO
-    //                 style={{ width: `${imageSize[0]}px`, height: `${imageSize[1]}px`, objectFit: "cover" }}
-    //             />
-
-
-    //         ))}
-    //     </div>
-    // </div>)
-}
-
-
-
-// export const ImagesGrid = ({ tweet, media }) => {
-//     const navigate = useNavigate();
-
-//     let gridSize = [150, 300] // w&h
-//     const handleImageNav = (tweet, index) => {
-//         navigate(`/tweet/${tweet.id}/images/${index}`);
-//     };
-
-//     const renderMedia = (url, index) => {
-//         const isVideo = url.endsWith('.mp4') || url.endsWith('.webm') 
-//         const isImage =  url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') 
-//         if (isVideo) {
-//             return (
-
-//             <video
-//                 key={index}
-//                 controls
-//                 onClick={(e)=> {e.stopPropagation(); handleImageNav(tweet,index)}}
-//                 style={{
-//                     objectFit: "cover",
-//                     width: '100%',
-//                     height: '100%'
-//                 }}>
-//                      <source src={url} type="video/mp4" />
-
-//                 </video>
-//             )
-
-//         } else if(isImage) {
-//             return (
-//                 <img
-//                     key={index}
-//                     src={url}
-//                     alt="tweet media"
-//                     className="grid-media"
-//                     onClick={(e) => {
-//                         e.stopPropagation();
-//                         handleImageNav(tweet, index);
-//                     }}
-//                     style={{
-//                         objectFit: "cover",
-//                         width: '100%',
-//                         height: '100%'
-//                     }}
-//                 />
-//             )
-//         }
-//     };
-
-
-//     if (media.length === 1) {
-//         return (
-//             <div id="images-grid" style={{ padding: "5%", justifyContent: 'center' }}>
-//                 {renderMedia(media[0], 0)}
-//             </div>
-//         );
-//     }
-
-//     if (media.length === 2) {
-//         return (
-//             <div id="images-grid" style={{ padding: "5%", justifyContent: 'center' }}>
-//                 {renderMedia(media[0], 0)}
-//                 {renderMedia(media[1], 1)}
-//             </div>
-//         );
-//     }
-
-//     if (media.length === 3) {
-//         return (
-//             <div id="images-grid" style={{ padding: "5%", display: 'flex', flexDirection: "row", justifyContent: 'center' }}>
-//                 <div style={{ width: '50%', height: '100%' }}>
-//                     {renderMedia(media[0], 0)}
-//                 </div>
-//                 <div style={{ display: 'flex', flexDirection: 'column', width: '50%', height: '100%' }}>
-//                     {renderMedia(media[1], 1)}
-//                     {renderMedia(media[2], 2)}
-//                 </div>
-//             </div>
-//         );
-//     }
-
-//     if (media.length === 4) {
-//         return (
-//             <div id="images-grid" style={{ padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
-//                 <div style={{ width: '100%', height: '50%', display: 'flex', flexDirection: 'row' }}>
-//                     {renderMedia(media[0], 0)}
-//                     {renderMedia(media[1], 1)}
-//                 </div>
-//                 <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '50%' }}>
-//                     {renderMedia(media[2], 2)}
-//                     {renderMedia(media[3], 3)}
-//                 </div>
-//             </div>
-//         );
-//     }
-
-//     return null;
-
-// };
-
-
-
-
-
-
-// export const ImagesGrid = ({ tweet, images }) => {
-//     const navigate = useNavigate();
-
-//     let gridSize = [150, 300] // w&h
-//     const handleImageNav = (tweet, index) => {
-//         navigate(`/tweet/${tweet.id}/images/${index}`);
-//     };
-
-//     const renderMedia = (item, index) => {
-//         const fileExtension = item.split('.').pop().toLowerCase();
-
-//         if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
-//             return (
-//                 <img
-//                     key={index}
-//                     src={item}
-//                     alt={`tweet media ${index + 1}`}
-//                     className="grid-image"
-//                     onClick={(e) => {
-//                         e.stopPropagation();
-//                         handleImageNav(tweet, index);
-//                     }}
-//                     style={{ objectFit: "cover", width: '100%', height: '100%' }}
-//                 />
-//             );
-//         } else if (['mp4', 'webm'].includes(fileExtension)) {
-//             return (
-//                 <video
-//                     key={index}
-//                     controls
-//                     className="grid-video"
-//                     style={{ objectFit: "cover", width: '100%', height: '100%' }}
-//                 >
-//                     <source src={item} type={`video/${fileExtension}`} />
-//                 </video>
-//             );
-//         } else {
-//             return null;
-//         }
-//     };
-
-//     const renderGrid = () => {
-//         if (images.length === 1) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-//                     {renderMedia(images[0], 0)}
-//                 </div>
-//             );
-//         }
-//         if (images.length === 2) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[0], 0)}
-//                     </div>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[1], 1)}
-//                     </div>
-//                 </div>
-//             );
-//         } 
-//         if (images.length === 3) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "row", justifyContent: 'center' }}>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[0], 0)}
-//                     </div>
-//                     <div style={{ display: 'flex', flexDirection: 'column', width: `50%`, height: `100%` }}>
-//                         <div style={{ width: `100%`, height: `50%` }}>
-//                             {renderMedia(images[1], 1)}
-//                         </div>
-//                         <div style={{ width: `100%`, height: `50%` }}>
-//                             {renderMedia(images[2], 2)}
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         } 
-//         if (images.length === 4) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
-//                     <div style={{ width: `100%`, height: `50%`, display: 'flex', flexDirection: 'row' }}>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[0], 0)}
-//                         </div>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[1], 1)}
-//                         </div>
-//                     </div>
-//                     <div style={{ width: `100%`, height: `50%`, display: 'flex', flexDirection: 'row' }}>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[2], 2)}
-//                         </div>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[3], 3)}
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         }
-//     };
-
-//     return renderGrid();
-// };
-
-
-
-
-export const VideoPlayer = ({ tweet }) => {
-    const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
-    const seaweedfs = tweet.video_info;
-
-    const videoRefs = useRef([]);
-    const [mediaSources, setMediaSources] = useState([]);
-    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm');
-
-    useEffect(() => {
-        const mediaUrl = tweet.image_urls;
-        const durations = tweet.duration;
-        const videoArray = mediaUrl.filter((fileUrl) => isVideo(fileUrl));
-        try {
-
-            if (videoArray.length > 0 && seaweedfs.Entries.length > 0 && videoRefs.current.length > 0) {
-                const newMediaSources = videoArray.map(() => new MediaSource());
-                setMediaSources(newMediaSources);
-
-                newMediaSources.forEach((mediaSource, index) => {
-                    if (videoRefs.current[index]) {
-                        videoRefs.current[index].src = URL.createObjectURL(mediaSource);
-                        var time = durations[index].split(":")
-                        var durationSeconds = parseInt(time[0]) * 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1])* 0.001;
-                
-                        console.log("duration for vid " + durationSeconds )
-                        const videoChunks = seaweedfs.Entries[index].chunks;
-
-                        mediaSource.onsourceopen = async () => {
-                            console.log(`${mediaSource.readyState} should be 'open'`); // open
-                            console.log(MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001f, mp4a.40.2"'))
-
-                            const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.64001f, mp4a.40.2"');
-                            console.log("duration in seconds " + durationSeconds)
-                            mediaSource.duration = durationSeconds
-                            let currSize = 0;
-                            if (videoChunks) {
-                                try {
-                                    for (const chunk of videoChunks) {
-                                        currSize += chunk.size / 10e+5;
-
-                                        if (currSize > 110) {
-                                            break;
-                                        }
-
-                                        const fetchedChunk = await videoFetch(chunk.file_id);
-                                        
-                                        await new Promise((resolve) => {
-                                            console.log(`start. fetching chunk ${chunk.file_id} - ${videoChunks.indexOf(chunk)} / ${videoChunks.length}. Size ${currSize}`);
-
-                                            sourceBuffer.onupdateend = () => {
-                                                console.log('Chunk appended successfully');
-                                                resolve();
-                                            };
-                                            sourceBuffer.onupdatestart = () => {
-                                                console.log('start update');
-                                            }
-                                            sourceBuffer.onerror = (err) => {
-                                                console.error('sourceBuffer error:', err)
-                                            };
-                                            sourceBuffer.appendBuffer(fetchedChunk);
-
-                                        });
-                                    }
-                                    // mediaSource.endOfStream();
-                                } catch (e) {
-                                    console.error(e)
-                                }
-                            }
-                        };
-                    }
-                });
-            }
-        } catch(e) {
-            console.log(e);
-        }
-
-    }, [tweet]);
-
-    const videoFetch = async (path) => {
-        const url = `http://192.168.0.138:8080/${path}`;
-        const accessToken = localStorage.getItem('access_token');
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            responseType: 'arraybuffer'
-        };
-        try {
-            const response = await axiosInstance.get(url, config);
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching video ', error);
-        }
-    };
-
-    return (
-        <div>
-            {tweet.video_info.Entries.map((entry, index) => (
-                <video
-                    key={index}
-                    ref={(elem) => videoRefs.current[index] = elem}
-                    controls
-                    muted={false}
-                    style={{ objectFit: "cover", width: '100%' }}
-                    src={null}
-                />
-            ))}
-        </div>
-    );
-};
 
 export const TweetCard = ({
     tweet,
@@ -699,15 +189,15 @@ export const TweetCard = ({
     //         f();
     //     }  
     // }, [tweet]);
-    
-    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm') 
-    const isImage = (url) => url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg') 
+
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm')
+    const isImage = (url) => url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')
 
     useEffect(() => {
         const mediaUrl = tweet.image_urls
 
-        const imageArray = mediaUrl.filter((fileUrl)=> isImage(fileUrl))
-        const videoArray = mediaUrl.filter((fileUrl)=> isVideo(fileUrl))
+        const imageArray = mediaUrl.filter((fileUrl) => isImage(fileUrl))
+        const videoArray = mediaUrl.filter((fileUrl) => isVideo(fileUrl))
 
         const fetchImages = async () => {
             let images = [];
@@ -781,7 +271,6 @@ export const TweetCard = ({
     const tweetHeader = (tweet) => {
         return (
             <>
-                {console.log("info" + JSON.stringify(videoInfo))}
                 {tweet && (
 
                     <><Row>
@@ -815,20 +304,26 @@ export const TweetCard = ({
         )
     }
 
-    const tweetImages = (tweet, images) => {
+    const tweetGrid = (tweet, images) => {
+
+        let duration_index = 0
+
         return (
             <><div style={{ display: "flex", justifyContent: 'center' }}>
                 {images.length > 0 && (<ImagesGrid tweet={tweet} images={images} />)}
             </div>
-            <div style={{ display: "flex", justifyContent: 'center' }}>
-            {/* { videoArray.map((video, index) => (
+                <div style={{ display: "flex", justifyContent: 'center' }}>
+                    {tweet.image_urls.map((media, index) => {
+                        if (media.endsWith('.mp4')) {
+                            return <VideoPlayer duration={tweet.duration[duration_index++]} seaweedfs_entry={tweet.video_info["Entries"].filter((v) => v['FullPath'] == media)[0]} />
+                        }
+                    })}
+                    {/* { videoArray.map((video, index) => (
                     <div key={index}> */}
-                        <VideoPlayer tweet={tweet} />
                     {/* </div>
             ))} */}
-                {/* {videos.length > 0 && (<VideoPlayer tweet={tweet} videos={videos} />)} */}
-            </div></>
-
+                    {/* {videos.length > 0 && (<VideoPlayer tweet={tweet} videos={videos} />)} */}
+                </div></>
         )
     }
 
@@ -924,7 +419,7 @@ export const TweetCard = ({
         )
     }
 
-  
+
     return (
         <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
             navigate(`/tweet/${tweet.id}`)
@@ -941,7 +436,7 @@ export const TweetCard = ({
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
                                 {tweetHeader(tweet.original_tweet)}
-                                {tweetImages(tweet.original_tweet, images,videos)}
+                                {tweetGrid(tweet.original_tweet, images, videos)}
                                 {tweetButtons(tweet, tweet.original_tweet)}
                             </Container>
                         )}
@@ -950,11 +445,11 @@ export const TweetCard = ({
                                 <Row>
                                     <Col>{tweet.content}</Col>
                                 </Row>
-                                {tweetImages(tweet, images,videos)}
+                                {tweetGrid(tweet, images, videos)}
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
                                     {/* TODO: change videos for ogtweet */}
-                                    {tweetImages(tweet.original_tweet, ogTweetImages,videos)}
+                                    {tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
                                     {tweetDate(tweet)}
                                 </Card>
                                 {tweet.original_tweet && tweetButtons(tweet.original_tweet, tweet)}
@@ -967,7 +462,7 @@ export const TweetCard = ({
                 // <Card.Body>
                 <div>
                     {tweetHeader(tweet)}
-                    {tweetImages(tweet, images,videos)}
+                    {tweetGrid(tweet, images, videos)}
                     {tweetDate(tweet)}
                     {tweetButtons(tweet, tweet)}
                 </div>
