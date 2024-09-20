@@ -15,7 +15,7 @@ import { CommentOnComment } from "../modals/commentOnComment";
 import Menu from "../drawer";
 import { RetweetTweet } from '../modals/RetweetDialog';
 import { Grid } from '@mui/material';
-
+import { TweetCard } from "../tweetCard";
 
 const TweetView = () => {
     const { tweetId } = useParams();
@@ -30,7 +30,9 @@ const TweetView = () => {
     const [commentIdForDialog, setCommentIdForDialog] = useState(null);
     const [showQuoteDialog, setShowQuoteDialog] = React.useState(false);
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
-
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [tweetIdToDelete, setTweetIdToDelete] = useState(null);
+   
     const handleOpenQuoteDialog = (e) => {
         e.stopPropagation();
         setShowQuoteDialog(true);
@@ -259,6 +261,27 @@ const TweetView = () => {
             console.log(error);
         }
     };
+    
+    const handleDeleteTweet = async (tweetIdToDelete) => {
+        try {
+            const accessToken = localStorage.getItem('access_token');
+            await axiosInstance.delete(`${apiUrl}/tweets/delete/${tweetIdToDelete}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                withCredentials: true,
+            });
+            setTweet(tweet.id !== tweetIdToDelete);
+            handleCloseDeleteDialog();
+        } catch (error) {
+            console.log(error);
+        }
+    };
+    const handleCloseDeleteDialog = () => {
+        setShowDeleteDialog(false);
+        setTweetIdToDelete(null);
+    };
 
 
     const imageFetch = async (path) => {
@@ -360,69 +383,21 @@ const TweetView = () => {
     return (
         <Container fluid style={{ position: "relative" }}>
             <Row>
-                <Col xs={2} style={{ position: "fixed", height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
-                    <Menu />
-                </Col>
+                
                 <Col xs={{ span: 9, offset: 2 }}>
                     <Button onClick={() => navigate(-1)} style={{ background: "transparent", border: "none" }} className="btn mt-3">
                         <img src={back} alt="Back" width={"20px"} />
                     </Button>
-                    <Card key={tweet.id} className="mb-4 tweet-card">
-                        {tweet.retweet_id !== null && (
-                            <Card.Body>
-                                <Container fluid>
-                                    <Row>
-                                        <Col xs={10}>
-                                            <img src={retweet} alt='Retweet' style={{ width: "2vw" }} />
-                                            <p>{tweet.username} has retweeted</p>
-                                        </Col>
-                                    </Row>
-                                    {(!tweet.content && !tweet.image_urls) && (
-                                        <Container fluid>
-                                            {tweetheader(tweet.original_tweet)}
-                                            {tweetImages(tweet.original_tweet)}
-                                            {tweetButtons(tweet.original_tweet, tweet)}
-                                        </Container>
-                                    )}
-                                    {(tweet.content !== "" || tweet.image_urls) && (
-                                        <div>
-                                            <Row>
-                                                <Col> {tweet.content}
-                                                </Col>
-                                            </Row>
-                                            <Card>
-                                                {tweetheader(tweet)}
-                                                {tweetImages(tweet)}
-                                                {tweetButtons(tweet, tweet.original_tweet)}
-                                                <Row>
-                                                    <Card.Subtitle className="text-muted">
-                                                        Created at: {new Date(tweet.created_at).toLocaleString()}
-                                                    </Card.Subtitle>
-                                                </Row>
+                    < TweetCard
+                        key={tweet.id}
+                        originalTweetImg={tweet.original_tweet}
+                        tweet={tweet}
+                        handleLike={handleLike}
+                        handleUnlike={handleUnlike}
+                        handleRetweet={handleRetweet}
+                        handleUnretweet={handleUnretweet}
+                        handleDeleteTweet={handleDeleteTweet} />
 
-                                            </Card>
-                                        </div>
-                                    )}
-                                </Container>
-                            </Card.Body>
-                        )}
-                        {tweet.retweet_id === null && (
-                            <Card.Body>
-                                <Container fluid>
-                                    {tweetheader(tweet)} {console.log("tweet user: " + tweet)}
-                                    {tweetImages(tweet)}
-                                    
-                                    <Row>
-                                        <Card.Subtitle className="text-muted">
-                                            Created at: {new Date(tweet.created_at).toLocaleString()}
-                                        </Card.Subtitle>
-                                    </Row>
-                                    {tweetButtons(tweet, tweet.original_tweet)}
-                                </Container>
-                            </Card.Body>
-                        )}
-
-                    </Card>
 
 
 
