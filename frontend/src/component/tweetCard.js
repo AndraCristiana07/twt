@@ -315,7 +315,9 @@ export const TweetCard = ({
                 <div style={{ display: "flex", justifyContent: 'center' }}>
                     {tweet.image_urls.map((media, index) => {
                         if (media.endsWith('.mp4')) {
-                            return <VideoPlayer duration={tweet.duration[duration_index++]} seaweedfs_entry={tweet.video_info["Entries"].filter((v) => v['FullPath'] == media)[0]} />
+                            return <VideoPlayer
+                                duration={tweet.duration[duration_index]}
+                                video_info={tweet.video_info[duration_index++]} />
                         }
                     })}
                     {/* { videoArray.map((video, index) => (
