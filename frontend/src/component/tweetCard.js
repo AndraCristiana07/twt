@@ -316,6 +316,7 @@ export const TweetCard = ({
                     {tweet.image_urls.map((media, index) => {
                         if (media.endsWith('.mp4')) {
                             return <VideoPlayer
+                                key={index}
                                 duration={tweet.duration[duration_index]}
                                 video_info={tweet.video_info[duration_index++]} />
                         }

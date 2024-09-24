@@ -11,11 +11,15 @@ export const TweetPost = ({show, handleClose}) => {
     const [content, setContent] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(null)
+    const [message, setMessage] = useState(null)
+
     const [files, setFiles] = useState([]);
     const [previews, setPreviews] = useState([]);
 
     const apiUrl = process.env.REACT_APP_API_URL
     const handleSubmit = async (e) => {
+        setMessage("Tweet loading")
+
         e.preventDefault();
         setError(null);
         setSuccess(null);
@@ -33,9 +37,9 @@ export const TweetPost = ({show, handleClose}) => {
                 formdata.append(`images`, files[i]);
             }
             await axiosInstance.post(`${apiUrl}/tweets/post`, 
-              
+            
                 formdata,
-             {
+            {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     'Authorization': `Bearer ${accessToken}`
@@ -83,6 +87,8 @@ export const TweetPost = ({show, handleClose}) => {
                     </Form.Group>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     {success && <p style={{ color: 'green' }}>{success}</p>}
+                    {message && <p style={{color: 'green'}}> {message}</p>}
+
                     <Tooltip title="Media">
                         <div style={{position:"relative", width: '4vw', height: '4vh' }}>
                             <input

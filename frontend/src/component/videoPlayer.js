@@ -165,6 +165,7 @@ export const VideoPlayer = ({ video_info }) => {
                     await new Promise((resolve) => {
                         sourceBuffer.onupdateend = resolve
                         sourceBuffer.remove(start, end)
+                        console.log(`removed from ${start} to ${end} `)
                     });
 
                     sbMutex.release()
@@ -206,7 +207,8 @@ export const VideoPlayer = ({ video_info }) => {
                             return;
                         }
                         await loadChunk(chunk_idx);
-
+                        // await loadChunk(chunk_idx + 1);
+                        
                         await removeTimeRange(0, Math.max(0.0001, time - 10));
                     } catch (e) { }
                 }
@@ -215,39 +217,48 @@ export const VideoPlayer = ({ video_info }) => {
                     await seekMutex.acquire();
                     const time = videoRef.current.currentTime;
 
-                    console.log('time', time)
+                    // console.log('time', time)
                     // await videoRef.current.pause();
+                    try {
+
+                        const loaded = await isChunkLoaded(time);
+
+                        // console.log('loaded', loaded)
+
+                        if (loaded) { 
+                            seekMutex.release(); 
+                            return; 
+                        } 
+
+                        // await removeTimeRange(0, Math.max(0.01, mediaSource.duration));
+                        await removeTimeRange(0, Math.max(0.01, time - 10));
+
+                        const chunk_idx = getChunk(time);
+
+                        // console.log(time, chunk_idx)
+
+                        if (chunk_idx === undefined) {
+                            seekMutex.release()
+                            return;
+                        }
 
 
-                    const loaded = await isChunkLoaded(time);
+                        await loadChunk(chunk_idx);
 
-                    console.log('loaded', loaded)
+                        await removeTimeRange(0, Math.max(0.01, time - 10));
 
-                    if (loaded) { return; }
+                        // await videoRef.current.pause()
+                        // setCurrentTime(videoRef.current.currentTime);
+                        // const newMediaSource = new MediaSource();
+                        // videoRef.current.src = URL.createObjectURL(newMediaSource);
+                        // setMediaSource(newMediaSource);
 
-                    await removeTimeRange(0, Math.max(0.01, mediaSource.duration));
+                        // await videoRef.current.play();
+                    }finally {
+                        seekMutex.release()
 
-                    const chunk_idx = getChunk(time);
-
-                    console.log(time, chunk_idx)
-
-                    if (chunk_idx === undefined) {
-                        return;
                     }
 
-
-                    await loadChunk(chunk_idx);
-
-                    await removeTimeRange(0, Math.max(0.01, time - 10));
-
-                    // await videoRef.current.pause()
-                    // setCurrentTime(videoRef.current.currentTime);
-                    // const newMediaSource = new MediaSource();
-                    // videoRef.current.src = URL.createObjectURL(newMediaSource);
-                    // setMediaSource(newMediaSource);
-
-                    // await videoRef.current.play();
-                    seekMutex.release()
                 }
 
                 videoRef.current.onplay = async (event) => {

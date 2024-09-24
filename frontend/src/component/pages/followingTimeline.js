@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import close_icon from '../../assets/add.svg'
 import { Tooltip } from "@mui/material"; // TODO replace with X icon
 import { Mutex } from 'async-mutex'
+// import { TestThumbnail } from "../testThumbnail";
 
 export const VideoPlayer = () => {
   //video stream
@@ -1941,7 +1942,7 @@ export const VideoPlayer = () => {
 
           newMediaSource.duration = 999999999
           const newVideoChunks = videoChunks.filter((val, idx) => {
-            return  idx <= 10 || idx > 30
+            return idx <= 10 || idx > 30
           })
 
           for (const chunk of videoChunks) {
@@ -2028,7 +2029,9 @@ export const FollowingTimeline = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null)
+  const [message, setMessage] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [videoThumbnail, setVideoThumbnail] = useState(null);
   const [loadedData, setLoadedData] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const navigate = useNavigate();
@@ -2040,6 +2043,33 @@ export const FollowingTimeline = () => {
   }, [page]);
 
 
+
+  const capture = (file, index) => {
+    const canvas = document.getElementById('canvas');
+    const video = document.getElementById('video');
+    // video.src = file;
+    // video.muted = true;
+
+    if (!canvas || !video) return;
+
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    
+    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+    
+    const thumbnail = canvas.toDataURL('image/png');
+    
+    
+    setPreviews(prevPreviews => {
+      const newPreviews = [...prevPreviews]
+      newPreviews[index] = thumbnail
+      return newPreviews
+
+    });
+};
 
   const fetchAllTweets = async (page) => {
     try {
@@ -2065,7 +2095,7 @@ export const FollowingTimeline = () => {
       setTotalTweets(response.data.total_tweets)
       setTotalPages(response.data.total_pages)
       setHasMore(page < response.data.total_pages)
-     
+
       setLoading(false);
     } catch (error) {
       console.log(error);
@@ -2181,8 +2211,9 @@ export const FollowingTimeline = () => {
   const [content, setContent] = useState("");
   const [files, setFiles] = useState([])
   const [previews, setPreviews] = useState([]);
-  
+
   const handleTweetPost = async (e) => {
+    setMessage("Tweet loading")
     e.preventDefault();
     try {
       const accessToken = localStorage.getItem('access_token');
@@ -2224,6 +2255,7 @@ export const FollowingTimeline = () => {
   return (
     <>
       {/* <VideoPlayer></VideoPlayer> */}
+      {/* <TestThumbnail/> */}
       <Container fluid>
         <Card className="mt-5">
           <Card.Body>
@@ -2254,54 +2286,87 @@ export const FollowingTimeline = () => {
                     }} />
                   <img src={media} alt="media" title="media content"
                     style={{
-                      width: '100%',
-                      height: '100%',
+                      width: '100%', // TODO
+                      height: '100%', // TODO
                       position: 'absolute',
                       zIndex: 1
                     }} />
                 </div>
               </Tooltip>
+              
 
-              <div style={{ display: "flex", justifyContent: "end" }}>
-                <Button variant="primary" type="submit">
+              <div key='tweetbutton' style={{ display: "flex", justifyContent: "end" }}>
+                <Button variant="primary" type="submit" >
                   Tweet
                 </Button>
               </div>
               {error && <p style={{ color: 'red' }}>{error}</p>}
               {success && <p style={{ color: 'green' }}>{success}</p>}
+              {message && <p style={{ color: 'green' }}>{message}</p>}
             </Form>
-            {/* <div>
-                            {previews.map((preview, index) => (
+            <div>
+              {previews.map((preview, index) => {
+                // const isVideo = files[index].endsWith('.mp4')
+                const isVideo = files[index].type.startsWith('video')
 
-                                <div
-                                    style={{ display: "inline-block" }}
-                                    onMouseOver={event => {
-                                        document.getElementById(`${index}-post-img`).style.opacity = 100;
-                                    } }
-                                    onMouseOut={event => {
-                                        document.getElementById(`${index}-post-img`).style.opacity = 0;
-                                    } }>
-                                    <img key={`${index}-x`} src={close_icon} onClick={() => {
-                                        setPreviews(previews.filter((value, index1) => {
-                                            return index1 !== index;
-                                        }));
-                                    } } style={{
-                                        transform: "rotateY(0deg) rotate(45deg)",
-                                        position: 'absolute',
-                                        zIndex: 2,
-                                        width: '25px',
-                                        height: '25px',
-                                        margin: '10px',
-                                        opacity: 0
-                                    }} alt={"X"} />
-                                    <img key={`${index}-post-img`} src={preview} alt="preview"
-                                        style={{ width: '100px', height: '100px', margin: '10px' }} />
-                                </div>
-                            ))}
-                        </div> */}
-          </Card.Body>
-        </Card>
-      </Container><Container className="container mt-5 text-center">
+
+              
+                return (
+                <div key={index}
+                  style={{ display: "inline-block" }}
+                  onMouseOver={event => {
+                    document.getElementById(`${index}-x`).style.opacity = 100;
+                  }}
+                  onMouseOut={event => {
+                    document.getElementById(`${index}-x`).style.opacity = 0;
+                  }}>
+                  <img id={`${index}-x`} src={close_icon} onClick={() => {
+                    // TODO
+                    setFiles(files.filter((value, index2) => {
+                      return index2 !== index;
+                    }))
+                    setPreviews(previews.filter((value, index1) => {
+                      return index1 !== index;
+                    }));
+                  }} style={{
+                    transform: "rotateY(0deg) rotate(45deg)",
+                    position: 'absolute',
+                    zIndex: 2,
+                    width: '25px',
+                    height: '25px',
+                    margin: '10px',
+                    opacity: 0
+                  }} alt={"X"} />
+
+                    {isVideo ? (
+                        <>
+                            <video
+                                id={`${index}-video`}
+                                src={preview}
+                                style={{ width: '100px', height: '100px', margin: '10px' }}
+                                // controls
+                                muted
+                                onLoadedData={() => capture(files[index], index)}
+                            ></video>
+                            <canvas id={`${index}-canvas`} style={{ display: 'none' }}></canvas>
+                          
+                        </>
+                    ) : (
+                        <img
+                            id={`${index}-post-img`}
+                            src={preview}
+                            alt="preview"
+                            style={{ width: '100px', height: '100px', margin: '10px' }}
+                        />
+                    )}
+                </div>
+            );
+                        })}
+                    </div>
+                </Card.Body>
+            </Card>
+        </Container>
+        <Container className="container mt-5 text-center">
         {loading ? <p key="loading_tweets"> Loading... </p> : (
           // video test
           <>

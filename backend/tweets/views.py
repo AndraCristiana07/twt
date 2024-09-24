@@ -217,7 +217,7 @@ class PostTweetView(APIView):
     def upload_video_to_seaweedfs(self, video: InMemoryUploadedFile, tweet_id):
         try:
             
-            video_name = os.path.splitext(video.name)[0].strip().lower()
+            video_name = os.path.splitext(video.name)[0].strip()
             logger.debug(f'video name: {video_name}')
 
             new_file_path = PostTweetView.conversion(video)
@@ -420,24 +420,7 @@ class GetSingleTweetView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    def get_video_info(self, tweet_id, video_url):
-        
-        if "/video/" not in video_url:
-            logger.debug("not video")
-            return None
-        url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"
 
-        response = requests.get(url, headers={"Accept": "application/json"})
-    
-        video_info = response.json()
-    
-        logger.debug("video info " + json.dumps(video_info))
-
-        if video_info:
-            return video_info
-        else:
-            logger.error(f"No video info found for tweet {tweet_id}")
-            raise Exception("No video info found")
     
 
 
