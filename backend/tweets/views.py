@@ -1498,6 +1498,9 @@ class GetUserTweetsView(APIView):
 
             serializer = UserSerializer(user)
             username = serializer.data["username"]
+            media_url = tweet.image_urls
+            video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
+            
             profile_image = serializer.data["profile_image"]
             tweet_details = {
                 "id": tweet_id,
@@ -1506,6 +1509,7 @@ class GetUserTweetsView(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,  
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -1515,6 +1519,7 @@ class GetUserTweetsView(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
             }
             if result and result.retweet_id:
                 original_tweet_id = result.retweet_id
@@ -1550,6 +1555,9 @@ class GetUserTweetsView(APIView):
                 original_tweet_like_id = (
                     str(original_tweet_like.id) if original_tweet_like else None
                 )
+                media_url = original_tweet.image_urls
+                video_info = FriendsTimelineView.get_videos_info(original_tweet_id, media_url)
+        
                 if original_tweet:
                     tweet_details["original_tweet"] = {
                         "id": str(original_tweet_id),
@@ -1558,6 +1566,7 @@ class GetUserTweetsView(APIView):
                         "created_at": original_tweet.created_at,
                         "retweet_id": original_tweet.retweet_id,
                         "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,  
                         "likes": original_tweet.likes,
                         "comments": original_tweet.comments,
                         "retweets": original_tweet.retweets,
@@ -1566,6 +1575,8 @@ class GetUserTweetsView(APIView):
                         "like_id": original_tweet_like_id,
                         "username": original_tweet_username,
                         "profile_image": original_tweet_profile_image,
+                        "video_info": video_info
+                        
                     }
             timeline.append(tweet_details)
         return Response(
@@ -1664,6 +1675,9 @@ class GetUserLikesView(APIView):
             serializer = UserSerializer(user)
             username = serializer.data["username"]
             profile_image = serializer.data["profile_image"]
+            media_url = tweet.image_urls
+            video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
+            
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1671,6 +1685,7 @@ class GetUserLikesView(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,  
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -1680,6 +1695,8 @@ class GetUserLikesView(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info,
+                
             }
             if result and result.retweet_id:
                 original_tweet_id = result.retweet_id
@@ -1715,6 +1732,9 @@ class GetUserLikesView(APIView):
                 original_tweet_like_id = (
                     str(original_tweet_like.id) if original_tweet_like else None
                 )
+                media_url = original_tweet.image_urls
+                video_info = FriendsTimelineView.get_videos_info(original_tweet_id, media_url)
+        
                 if original_tweet:
                     tweet_details["original_tweet"] = {
                         "id": str(original_tweet_id),
@@ -1723,6 +1743,7 @@ class GetUserLikesView(APIView):
                         "created_at": original_tweet.created_at,
                         "retweet_id": original_tweet.retweet_id,
                         "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,  
                         "likes": original_tweet.likes,
                         "comments": original_tweet.comments,
                         "retweets": original_tweet.retweets,
@@ -1731,6 +1752,8 @@ class GetUserLikesView(APIView):
                         "like_id": original_tweet_like_id,
                         "username": original_tweet_username,
                         "profile_image": original_tweet_profile_image,
+                        "video_info": video_info
+                        
                     }
             timeline.append(tweet_details)
 
@@ -1768,7 +1791,6 @@ class GetUserRetweetsView(APIView):
         ]
         return Response({"retweets": retweets}, status=status.HTTP_200_OK)
 
-
 class FriendsTimelineView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -1777,6 +1799,7 @@ class FriendsTimelineView(APIView):
         following_users = user.get_following()
         following_ids = [str(follow.followed.id) for follow in following_users]
         following_ids.append(str(user.id))
+        
         if not following_ids:
             return Response(
                 {"message": "No following users found"},
@@ -1788,7 +1811,6 @@ class FriendsTimelineView(APIView):
         query = f"SELECT * FROM twitter.tweets WHERE user_id IN ({followings_list}) ALLOW FILTERING"
 
         tweets = session.execute(query, following_ids)
-
         tweets_list = list(tweets)
         page_number = request.GET.get("page")
 
@@ -1833,12 +1855,10 @@ class FriendsTimelineView(APIView):
             serializer = UserSerializer(user)
             username = serializer.data["username"]
             profile_image = serializer.data["profile_image"]
-
             media_url = tweet.image_urls
-            logger.debug("media url " + str(media_url))
+            
             video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
-            # duration = self.get_video_duration(tweet_id,session)
-    
+
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -1846,7 +1866,7 @@ class FriendsTimelineView(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
-                "duration": tweet.video_duration,  
+                "duration": tweet.video_duration,
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -1870,8 +1890,6 @@ class FriendsTimelineView(APIView):
                     try:
                         original_user = User.objects.get(id=original_tweet.user_id)
                     except User.DoesNotExist:
-                        # original_tweet_username = "Unknown User"
-                        # original_tweet_profile_image = "default_profile_image_url"
                         return Response(
                             {"message": "User does not exist"},
                             status=status.HTTP_400_BAD_REQUEST,
@@ -1879,74 +1897,64 @@ class FriendsTimelineView(APIView):
 
                     original_serializer = UserSerializer(original_user)
                     original_tweet_username = original_serializer.data["username"]
-                    original_tweet_profile_image = original_serializer.data[
-                        "profile_image"
-                    ]
+                    original_tweet_profile_image = original_serializer.data["profile_image"]
 
                     original_tweet_like = session.execute(
                         "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
                         (original_tweet_id, user_id),
                     ).one()
-                    original_tweet_like_id = (
-                        str(original_tweet_like.id) if original_tweet_like else None
-                    )
+                    original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
 
                     original_tweet_retweet = session.execute(
                         "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
                         (original_tweet_id, user_id),
                     ).one()
                     original_tweet_delete_retweet_id = (
-                        str(original_tweet_retweet.id)
-                        if original_tweet_retweet
-                        else None
+                        str(original_tweet_retweet.id) if original_tweet_retweet else None
                     )
-                    media_url = original_tweet.image_urls
-                    video_info = FriendsTimelineView.get_videos_info(original_tweet_id, media_url)
-        
-                    if original_tweet:
-                        tweet_details["original_tweet"] = {
-                            "id": str(original_tweet_id),
-                            "user_id": original_tweet.user_id,
-                            "content": (
-                                "Original Tweet Deleted"
-                                if original_tweet_id == None
-                                else original_tweet.content
-                            ),
-                            "created_at": original_tweet.created_at,
-                            "retweet_id": original_tweet.retweet_id,
-                            "image_urls": original_tweet.image_urls,
-                            "duration": original_tweet.video_duration,
-                            "likes": original_tweet.likes,
-                            "comments": original_tweet.comments,
-                            "retweets": original_tweet.retweets,
-                            "isLiked": bool(original_tweet_like),
-                            "isRetweeted": bool(original_tweet_retweet),
-                            "like_id": original_tweet_like_id,
-                            "delete_retweet_id": original_tweet_delete_retweet_id,
-                            "username": original_tweet_username,
-                            "profile_image": original_tweet_profile_image,
-                            "video_info": video_info
-                        }
-                    else:
-                        tweet_details["original_tweet"] = {
-                            "id": None,
-                            "user_id": None,
-                            "content": "Tweet does not exist",
-                            "created_at": None,
-                            "retweet_id": None,
-                            "image_urls": [],
-                            "likes": 0,
-                            "comments": 0,
-                            "retweets": 0,
-                            "isLiked": False,
-                            "isRetweeted": False,
-                            "like_id": None,
-                            "delete_retweet_id": None,
-                            "username": "Unknown User",
-                            "profile_image": "default_profile_image_url",
-                            "video_info": None,
-                            "duration":None
-                        }
+                    
+                    original_media_url = original_tweet.image_urls
+                    original_video_info = FriendsTimelineView.get_videos_info(original_tweet_id, original_media_url)
+
+                    tweet_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content if original_tweet.content else "Original Tweet Deleted",
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_like),
+                        "isRetweeted": bool(original_tweet_retweet),
+                        "like_id": original_tweet_like_id,
+                        "delete_retweet_id": original_tweet_delete_retweet_id,
+                        "username": original_tweet_username,
+                        "profile_image": original_tweet_profile_image,
+                        "video_info": original_video_info
+                    }
+                else:
+                    tweet_details["original_tweet"] = {
+                        "id": None,
+                        "user_id": None,
+                        "content": "Original tweet does not exist",
+                        "created_at": None,
+                        "retweet_id": None,
+                        "image_urls": [],
+                        "likes": 0,
+                        "comments": 0,
+                        "retweets": 0,
+                        "isLiked": False,
+                        "isRetweeted": False,
+                        "like_id": None,
+                        "delete_retweet_id": None,
+                        "username": "Unknown User",
+                        "profile_image": "default_profile_image_url",
+                        "video_info": None,
+                        "duration": None
+                    }
 
             timeline.append(tweet_details)
 
@@ -1959,7 +1967,6 @@ class FriendsTimelineView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
     def get_videos_info(tweet_id, video_urls):
         try:
             if "/video/" not in video_urls:
@@ -2031,28 +2038,6 @@ class FriendsTimelineView(APIView):
 
 
 
-    # def get_video_info(self, tweet_id, video_url):
-
-    #     if "/video/" not in video_url:
-    #         logger.debug("not video")
-    #         return None
-    #     url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/video/?pretty=y"
-
-    #     response = requests.get(url, headers={"Accept": "application/json"})
-    
-    #     video_info = response.json()
-    
-
-    #     logger.debug("video info " + json.dumps(video_info))
-
-    #     if video_info:
-    #         return video_info
-    #     else:
-    #         logger.error(f"No video info found for tweet {tweet_id}")
-    #         raise Exception("No video info found")
-        
-
-
 class UserTimelineView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -2104,6 +2089,9 @@ class UserTimelineView(APIView):
             serializer = UserSerializer(user)
             username = serializer.data["username"]
             profile_image = serializer.data["profile_image"]
+            media_url = tweet.image_urls
+            video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
+            
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -2111,6 +2099,7 @@ class UserTimelineView(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,  
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -2120,6 +2109,8 @@ class UserTimelineView(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
+                
             }
 
             if result and result.retweet_id:
@@ -2156,6 +2147,10 @@ class UserTimelineView(APIView):
                 original_tweet_like_id = (
                     str(original_tweet_like.id) if original_tweet_like else None
                 )
+                media_url = original_tweet.image_urls
+                video_info = FriendsTimelineView.get_videos_info(original_tweet_id, media_url)
+        
+        
                 if original_tweet:
                     tweet_details["original_tweet"] = {
                         "id": str(original_tweet_id),
@@ -2164,6 +2159,7 @@ class UserTimelineView(APIView):
                         "created_at": original_tweet.created_at,
                         "retweet_id": original_tweet.retweet_id,
                         "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,  
                         "likes": original_tweet.likes,
                         "comments": original_tweet.comments,
                         "retweets": original_tweet.retweets,
@@ -2172,6 +2168,8 @@ class UserTimelineView(APIView):
                         "like_id": original_tweet_like_id,
                         "username": original_tweet_username,
                         "profile_image": original_tweet_profile_image,
+                        "video_info": video_info
+                        
                     }
             timeline.append(tweet_details)
         return Response({"tweets": timeline}, status=status.HTTP_200_OK)
@@ -2268,6 +2266,9 @@ class GetCurrentUserLikes(APIView):
             serializer = UserSerializer(user)
             username = serializer.data["username"]
             profile_image = serializer.data["profile_image"]
+            media_url = tweet.image_urls
+            video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
+            
             tweet_details = {
                 "id": tweet_id,
                 "user_id": tweet.user_id,
@@ -2275,6 +2276,7 @@ class GetCurrentUserLikes(APIView):
                 "created_at": tweet.created_at,
                 "retweet_id": tweet.retweet_id,
                 "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,  
                 "likes": tweet.likes,
                 "comments": tweet.comments,
                 "retweets": tweet.retweets,
@@ -2284,6 +2286,8 @@ class GetCurrentUserLikes(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
+                
             }
             if result and result.retweet_id:
                 original_tweet_id = result.retweet_id
@@ -2300,7 +2304,7 @@ class GetCurrentUserLikes(APIView):
                     )
 
                 original_tweet_serializer = UserSerializer(user)
-                original_tweet_username = original_tweet_serializer.data["username"]
+                original_twfeet_username = original_tweet_serializer.data["username"]
                 original_tweet_profile_image = original_tweet_serializer.data[
                     "profile_image"
                 ]
@@ -2319,6 +2323,9 @@ class GetCurrentUserLikes(APIView):
                 original_tweet_like_id = (
                     str(original_tweet_like.id) if original_tweet_like else None
                 )
+                media_url = original_tweet.image_urls
+                video_info = FriendsTimelineView.get_videos_info(original_tweet_id, media_url)
+        
                 if original_tweet:
                     tweet_details["original_tweet"] = {
                         "id": str(original_tweet_id),
@@ -2327,6 +2334,7 @@ class GetCurrentUserLikes(APIView):
                         "created_at": original_tweet.created_at,
                         "retweet_id": original_tweet.retweet_id,
                         "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,  
                         "likes": original_tweet.likes,
                         "comments": original_tweet.comments,
                         "retweets": original_tweet.retweets,
@@ -2335,6 +2343,8 @@ class GetCurrentUserLikes(APIView):
                         "like_id": original_tweet_like_id,
                         "username": original_tweet_username,
                         "profile_image": original_tweet_profile_image,
+                        "video_info": video_info
+                        
                     }
             timeline.append(tweet_details)
 

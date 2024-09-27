@@ -39,7 +39,7 @@ export const DeleteDialog = ({ show, handleClose, tweetId }) => {
                 <Form onSubmit={handleSubmit}>
                         <Form.Group controlId="content">
                             <Form.Label>Are you sure you want to delete this tweet?</Form.Label>
-                          
+                        
                         </Form.Group>
                         {error && <p style={{ color: 'red' }}>{error}</p>}
                         {success && <p style={{ color: 'green' }}>{success}</p>}

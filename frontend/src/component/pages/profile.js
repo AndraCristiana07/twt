@@ -122,7 +122,7 @@ export const Profile = (props) => {
         }
     }
 
-   
+
     const fetchTweets = async (user_id, page) => {
         try {
             setLoading(true);

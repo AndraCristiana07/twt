@@ -195,62 +195,60 @@ export const TweetCard = ({
 
     useEffect(() => {
         const mediaUrl = tweet.image_urls
-
-        const imageArray = mediaUrl.filter((fileUrl) => isImage(fileUrl))
-        const videoArray = mediaUrl.filter((fileUrl) => isVideo(fileUrl))
-
+        
+        
         const fetchImages = async () => {
             let images = [];
             let ogImages = [];
             let videos = [];
+            if(mediaUrl){
+                const imageArray = mediaUrl.filter((fileUrl) => isImage(fileUrl))
+        
 
-            if (imageArray && imageArray.length > 0) {
-                const fetchedImages = await Promise.all(
-                    imageArray.map(async (url) => await imageFetch(url))
-                );
-                images = images.concat(fetchedImages)
-                // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
-                //     const fetchedOgImages = await Promise.all(
-                //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
-                //     );
-                //     ogImages = ogImages.concat(fetchedOgImages)
-                // }
+                if (imageArray && imageArray.length > 0 && mediaUrl) {
+                    const fetchedImages = await Promise.all(
+                        imageArray.map(async (url) => await imageFetch(url))
+                    );
+                    images = images.concat(fetchedImages)
+                    // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
+                    //     const fetchedOgImages = await Promise.all(
+                    //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
+                    //     );
+                    //     ogImages = ogImages.concat(fetchedOgImages)
+                    // }
 
-                setImages(images)
-                // setOgTweetImages(ogImages);
+                    setImages(images)
+                    // setOgTweetImages(ogImages);
+                }
             }
-            // if (videoArray && videoArray.ength > 0) {
-            //     const fetchedImages = await Promise.all(
-            //         videoArray.map(async (url) => await imageFetch(url))
-            //     );
-            //     videos = videos.concat(fetchedImages)
-            //     // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
-            //     //     const fetchedOgImages = await Promise.all(
-            //     //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
-            //     //     );
-            //     //     ogImages = ogImages.concat(fetchedOgImages)
-            //     // }
-
-            //     setVideos(videos)
-            //     // setOgTweetImages(ogImages);
-            // }
 
 
-            // TODO: for videos too
-            if (tweet.original_tweet && tweet.original_tweet.image_urls) {
-                const fetchedOgImages = await Promise.all(
-                    tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
-                );
-                // if (tweet.image_urls && tweet.image_urls.length > 0) {
-                //     const fetchedImages = await Promise.all(
-                //         tweet.image_urls.map(async (url) => await imageFetch(url))
-                //     );
-                //     images = images.concat(fetchedImages)
-                //     setImages(images)
-                // }
-                ogImages = ogImages.concat(fetchedOgImages)
-                setOgTweetImages(ogImages);
+            if (tweet.original_tweet){
+                const originalTweetMediaUrl = tweet.original_tweet.image_urls 
+
+                if(originalTweetMediaUrl){
+        
+                    const originalTweetimageArray = originalTweetMediaUrl.filter((fileUrl) => isImage(fileUrl))
+        
+            
+                    
+                    if ( originalTweetMediaUrl && originalTweetimageArray) {
+                        const fetchedOgImages = await Promise.all(
+                            tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
+                        );
+                        // if (tweet.image_urls && tweet.image_urls.length > 0) {
+                        //     const fetchedImages = await Promise.all(
+                        //         tweet.image_urls.map(async (url) => await imageFetch(url))
+                        //     );
+                        //     images = images.concat(fetchedImages)
+                        //     setImages(images)
+                        // }
+                        ogImages = ogImages.concat(fetchedOgImages)
+                        setOgTweetImages(ogImages);
+                    }
+                }
             }
+
         };
         fetchImages();
         fetchUserInfo(tweet.user_id)
@@ -287,6 +285,7 @@ export const TweetCard = ({
                             <Col>
                                 {tweet.retweet_id === null &&
                                     <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
+                            
                             </Col>
                         )}
                     </Row><Row>
@@ -307,13 +306,31 @@ export const TweetCard = ({
     const tweetGrid = (tweet, images) => {
 
         let duration_index = 0
-
+        // {
+        //     "id": "d24757ba-6df1-4831-b86d-b3ece98cad09",
+        //     "user_id": "1",
+        //     "content": "",
+        //     "created_at": "2024-09-26T15:19:30.777000",
+        //     "retweet_id": "b8ecd1b8-3617-4b77-b190-286c648f4690",
+        //     "image_urls": null,
+        //     "duration": null,
+        //     "likes": 1,
+        //     "comments": 0,
+        //     "retweets": 1,
+        //     "username": "andra",
+        //     "profile_image": "",
+        //     "isLiked": false,
+        //     "isRetweeted": false,
+        //     "like_id": null,
+        //     "delete_retweet_id": null,
+        //     "video_info": null
+        // },
         return (
             <><div style={{ display: "flex", justifyContent: 'center' }}>
                 {images.length > 0 && (<ImagesGrid tweet={tweet} images={images} />)}
             </div>
                 <div style={{ display: "flex", justifyContent: 'center' }}>
-                    {tweet.image_urls.map((media, index) => {
+                    {tweet.image_urls && tweet.image_urls.map((media, index) => {
                         if (media.endsWith('.mp4')) {
                             return <VideoPlayer
                                 key={index}
@@ -438,7 +455,12 @@ export const TweetCard = ({
                         </Row>
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
+                                {console.log("tweet id for retweet" + tweet.id)}
+                                {tweet.original_tweet.id === null && tweet.retweet_id &&
+                                    <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
+
                                 {tweetHeader(tweet.original_tweet)}
+                                
                                 {tweetGrid(tweet.original_tweet, images, videos)}
                                 {tweetButtons(tweet, tweet.original_tweet)}
                             </Container>
@@ -451,6 +473,7 @@ export const TweetCard = ({
                                 {tweetGrid(tweet, images, videos)}
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
+                                
                                     {/* TODO: change videos for ogtweet */}
                                     {tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
                                     {tweetDate(tweet)}

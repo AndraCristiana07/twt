@@ -66,7 +66,7 @@ export const VideoPlayer = ({ video_info }) => {
 
                 let allChunks = {};
 
-                console.log("video path" + video_info.path)
+                // console.log("video path" + video_info.path)
 
                 const durationsFetch = async () => {
                     let url = `http://192.168.0.138:8888${video_info.path}/out.m3u8`;
