@@ -185,22 +185,69 @@ class RegisterView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-class LoginView(APIView):
-    def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
+# class LoginView(APIView):
+#     permission_classes = (AllowAny,)
 
+#     def post(self, request):
+#         email = request.data.get("email")
+#         password = request.data.get("password")
+
+        
+#         if not email or not password:
+#             return Response(
+#                 {"message": "Email and password are required"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+
+#         try:
+            
+#             user = User.objects.get(email=email)
+#         except User.DoesNotExist:
+#             raise AuthenticationFailed("Account does not exist")
+
+     
+#         user = authenticate(username=user.username, password=password)
+
+#         if user is None:
+#             raise AuthenticationFailed("Invalid email or password")
+
+        
+#         access_token = AccessToken.for_user(user)
+#         refresh_token = RefreshToken.for_user(user)
+
+#         return Response({
+#             "message": "Login successful",
+#             "access": str(access_token),
+#             "refresh": str(refresh_token),
+#         }, status=status.HTTP_200_OK)
+
+class LoginView(APIView):
+    permission_classes = (AllowAny,)
+    
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+        if not email or not password:
+            return Response(
+                {"message": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise AuthenticationFailed("Account does  not exist")
+        
+        user = authenticate(email=email, password=password)
         if user is None:
-            raise AuthenticationFailed("User does not exist")
-        if not user.check_password(password):
-            raise AuthenticationFailed("Incorrect Password")
+            # raise AuthenticationFailed("User does not exist")
+            return Response(
+                {"message": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST,
+                
+            )
+        # if not user.check_password(password):
+        #     raise AuthenticationFailed("Incorrect Password")
         access_token = AccessToken.for_user(user)
         refresh_token = RefreshToken.for_user(user)
-        return Response({"access_token": access_token, "refresh_token": refresh_token})
+        return Response({"message":"Login successful","access_token": access_token, "refresh_token": refresh_token})
 
 class GetUserView(APIView):
     permission_classes = (IsAuthenticated,)

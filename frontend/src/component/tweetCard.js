@@ -64,6 +64,7 @@ export const TweetCard = ({
     }
 
     const handleOpenDeleteDialog = (tweetId) => {
+        console.log("tweet id", tweetId)
         setTweetIdToDelete(tweetId);
         setShowDeleteDialog(true);
     };
@@ -327,23 +328,19 @@ export const TweetCard = ({
         // },
         return (
             <><div style={{ display: "flex", justifyContent: 'center' }}>
-                {images.length > 0 && (<ImagesGrid tweet={tweet} images={images} />)}
+                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} />)}
             </div>
-                <div style={{ display: "flex", justifyContent: 'center' }}>
-                    {tweet.image_urls && tweet.image_urls.map((media, index) => {
-                        if (media.endsWith('.mp4')) {
-                            return <VideoPlayer
-                                key={index}
-                                duration={tweet.duration[duration_index]}
-                                video_info={tweet.video_info[duration_index++]} />
-                        }
-                    })}
-                    {/* { videoArray.map((video, index) => (
-                    <div key={index}> */}
-                    {/* </div>
-            ))} */}
-                    {/* {videos.length > 0 && (<VideoPlayer tweet={tweet} videos={videos} />)} */}
-                </div></>
+            {/* <div style={{ display: "flex", justifyContent: 'center' }}>
+                {tweet.image_urls && tweet.image_urls.map((media, index) => {
+                    if (media.endsWith('.mp4')) {
+                        return <VideoPlayer
+                            key={index}
+                            duration={tweet.duration[duration_index]}
+                            video_info={tweet.video_info[duration_index++]} />
+                    }
+                })}
+            </div> */}
+            </>
         )
     }
 
@@ -458,6 +455,7 @@ export const TweetCard = ({
                                 {console.log("tweet id for retweet" + tweet.id)}
                                 {tweet.original_tweet.id === null && tweet.retweet_id &&
                                     <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
+                                <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
 
                                 {tweetHeader(tweet.original_tweet)}
                                 

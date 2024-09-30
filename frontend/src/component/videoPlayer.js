@@ -244,6 +244,8 @@ export const VideoPlayer = ({ video_info }) => {
 
 
                         await loadChunk(chunk_idx);
+                        await loadChunk(chunk_idx+1);
+
 
                         await removeTimeRange(0, Math.max(0.01, time - 10));
 

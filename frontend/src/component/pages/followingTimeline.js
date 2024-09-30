@@ -7,7 +7,6 @@ import { TweetCard } from "../tweetCard";
 import { useNavigate } from "react-router-dom";
 import { Mutex } from 'async-mutex'
 import { TweetForm } from "../tweetFormPost";
-// import { TestThumbnail } from "../testThumbnail";
 
 export const VideoPlayer = () => {
   //video stream
@@ -2021,6 +2020,7 @@ export const VideoPlayer = () => {
 
 export const FollowingTimeline = () => {
   const [tweets, setTweets] = useState([]);
+  const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [totalTweets, setTotalTweets] = useState(0);
@@ -2029,6 +2029,7 @@ export const FollowingTimeline = () => {
   const [videoThumbnail, setVideoThumbnail] = useState(null);
   const [loadedData, setLoadedData] = useState([]);
   const [hasMore, setHasMore] = useState(true);
+  const [loadPage, setLoadPage] = useState(false);
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
   const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
@@ -2039,32 +2040,6 @@ export const FollowingTimeline = () => {
 
 
 
-  const capture = (file, index) => {
-    const canvas = document.getElementById('canvas');
-    const video = document.getElementById('video');
-    // video.src = file;
-    // video.muted = true;
-
-    if (!canvas || !video) return;
-
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    
-    context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-
-    
-    const thumbnail = canvas.toDataURL('image/png');
-    
-    
-    setPreviews(prevPreviews => {
-      const newPreviews = [...prevPreviews]
-      newPreviews[index] = thumbnail
-      return newPreviews
-
-    });
-};
 
   const fetchAllTweets = async (page) => {
     try {
