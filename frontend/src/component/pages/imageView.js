@@ -8,6 +8,8 @@ import axiosInstance from "../../interceptor/axiosInstance";
 
 import { TweetButtons } from '../tweetButtons';
 import { CommentButtons } from '../commentButtons';
+import { VideoPlayer } from '../videoPlayer';
+import zIndex from '@mui/material/styles/zIndex';
 
 const ImageViewer = () => {
     const { tweetId, imageNumber } = useParams(); 
@@ -31,7 +33,12 @@ const ImageViewer = () => {
             responseType: 'blob',
         };
         const response = await axiosInstance.get(url, config);
-        return URL.createObjectURL(response.data);
+        if(isImage(url)){
+            return URL.createObjectURL(response.data);
+
+        } else if(isVideo(url)){
+            return url;
+        }
     };
 
 
@@ -59,13 +66,17 @@ const ImageViewer = () => {
                     }
                     setCommentsImages(commentsImages);
                 }
-               
+            
             }
         } catch (error) {
             console.log(error);
         }
     };
+    const isImage = (url) => url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm')
+
     useEffect(() => {
+
         const fetchImages = async (tweetId) => {
             try {
                 const accessToken = localStorage.getItem('access_token');
@@ -78,9 +89,18 @@ const ImageViewer = () => {
                 });
                 const tweetData = response.data;
                 setTweet(tweetData);
-                const images = await Promise.all(tweetData.image_urls.map(imageFetch));
-                setImages(images);
-                setLoading(false);
+                const mediaUrl = tweetData.image_urls
+
+                if(mediaUrl){
+                    const imageArray = mediaUrl.filter((fileUrl) => isImage(fileUrl))
+                
+                    // if(imageArray && mediaUrl){
+                        const images = await Promise.all(tweetData.image_urls.map(imageFetch));
+                        setImages(images);
+                        setLoading(false);
+                    // }
+                }
+                
             } catch (err) {
                 setError(err.message);
                 setLoading(false);
@@ -254,13 +274,44 @@ const ImageViewer = () => {
             </Button>
             <Container fluid>
                 <Row>
-                    <Col md={8} style={{ height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
-                        <Carousel interval={null} activeIndex={activeIndex} onSelect={handleSelect}>
-                            {images.map((image, index) => (
-                                <Carousel.Item key={index}>
-                                    <img src={image} alt={`Slide ${index}`} style={{ width: '100%', height: '100%' }} />
-                                </Carousel.Item>
-                            ))}
+                    <Col md={8} style={{ height: "100vh",overflow: "hidden", borderRight: "1px solid black",  }}>
+                    {console.log(images)}
+                        <Carousel interval={null} activeIndex={activeIndex} onSelect={handleSelect} style={{justifyContent: 'center',}}>
+                            {images.map((image, index) => {
+                                if(image.endsWith('.mp4')){
+                                    let duration_index = 0
+                                    return (
+                                        <Carousel.Item key={index} style={{ padding: "5%", justifyContent: 'center', height:'100%' }}>
+                                            <div style={{ width: '100%', height: '50%', position:'relative',zIndex:1}} >
+
+                                            <VideoPlayer
+                                                key={index}
+                                                duration={tweet.duration[duration_index]}
+                                                video_info={tweet.video_info[duration_index++]}
+                                                style={{
+                                                    objectFit: "cover",
+                                                    width: `100%`,
+                                                    height: `100%`,
+                                                    position:'relative',
+                                                    zIndex:2
+                                                }} />
+                                            </div>
+
+                                        </Carousel.Item>
+                                    )
+                                } else{
+                                    return (
+                                        <Carousel.Item key={index} style={{ padding: "5%", justifyContent: 'center', height:'100%' }}>
+                                            <div style={{ width: '100%', height: '50%', position:'relative',zIndex:1}} >
+
+                                                <img src={image} alt={`Slide ${index}`} style={{ width: '100%', height: '50%',objectFit: "cover", }} />
+                                            </div>
+                                        </Carousel.Item>
+                                    )
+                                
+                                }
+                                
+                        })}
                         </Carousel>
                         {/* {tweetButtons(tweet)} */}
                         <TweetButtons tweet={tweet} handleLike={handleLike} handleUnlike={handleUnlike} handleRetweet={handleRetweet} handleUnretweet={handleUnretweet} />
@@ -294,7 +345,7 @@ const ImageViewer = () => {
                                 </Card.Body>
                             </Card>
                         )}
-                         <h5>Comments</h5>
+                        <h5>Comments</h5>
                     {Array.isArray(comments) && comments.length > 0 ? (
                         comments.map(comment => (
                             <Card key={comment.id} className="mb-3 comment-card" onClick={() => navigate(`/tweet/comment/${comment.id}`)}>
@@ -302,7 +353,7 @@ const ImageViewer = () => {
                                     <Card.Title>{comment.user_id}</Card.Title>
                                     <Card.Text>{comment.content}</Card.Text>
                                     
-                                     <Row>
+                                    <Row>
                                         {comment.image_urls && (
                                             <div className="image-grid" data-count={comment.image_urls.length}>
                                             {comment.image_urls.map((commentImage, index) => (

@@ -7,7 +7,7 @@ export const ImagesGrid = ({ tweet, media }) => {
     const mediaUrls = tweet.image_urls
     let gridSize = [150, 300] // w&h
     const handleImageNav = (tweet, index) => {
-        navigate(`/tweet/${tweet.id}/media/${index}`);
+        navigate(`/tweet/${tweet.id}/images/${index}`);
     }
 
     // console.log("media urls for grid" + mediaUrls[0])

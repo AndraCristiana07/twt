@@ -29,6 +29,8 @@ function App() {
           <Route path="/login" element={<Login/>} />
           <Route path="/logout" element={<Logout/>} />
           <Route path="/register" element={<Register/>} />
+          <Route path="/tweet/:tweetId/images/:imageNumber" element={<ImageViewer/>} />
+
         <Route element={<Layout/>}>
           <Route path="/" element={<FollowingTimeline/>} />
           <Route path="/tweet/:tweetId" element={<TweetView/>} />
@@ -43,7 +45,6 @@ function App() {
           <Route path="/following" element={<FollowingTimeline/>} />
           <Route path="/likes/:userId" element={<LikesPage/>} />
           <Route path="/search" element={<Search/>} />
-          <Route path="/tweet/:tweetId/images/:imageNumber" element={<ImageViewer/>} />
           <Route path="/image/:userId/:name" element={<UserImageViewer/>} />
         </Route>
 
