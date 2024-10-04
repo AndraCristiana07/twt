@@ -23,6 +23,7 @@ import { TweetCard } from "../tweetCard";
 
 export const LikesPage = () => {
     const [tweets, setTweets] = useState([]);
+    const [tweetsNumber, setTweetsNumber] = useState() 
     const [showPostCommentDialog, setShowPostCommentDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [tweetIdToDelete, setTweetIdToDelete] = useState(null);
@@ -67,7 +68,27 @@ export const LikesPage = () => {
             fetchUserInfo(userId);
             fetchProfileImage()
         }
-    }, [userId, profileImageURL, page]);
+    }, [userId, page]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (
+                window.innerHeight + document.documentElement.scrollTop + 1 >=
+                document.documentElement.scrollHeight
+            ) {
+                if (!loading && hasMore) {
+                    setPage(prevPage => prevPage + 1);
+                }
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [loading, hasMore]);
+
+
 
     const fetchProfileImage = async () => {
         if (profileImageURL) {
@@ -115,8 +136,9 @@ export const LikesPage = () => {
 
     const fetchTweets = async (page) => {
         try {
+            setLoading(true)
             const accessToken = localStorage.getItem('access_token');
-            const response = await axiosInstance.get(`${apiUrl}/tweets/get_user_likes/${userId}`, {
+            const response = await axiosInstance.get(`${apiUrl}/tweets/get_user_likes/${userId}/?page=${page}`, {
                 params: {
                     page:page,
                     page_size: pageSize
@@ -130,7 +152,11 @@ export const LikesPage = () => {
 
             if (Array.isArray(response.data.likes)) {
                 const sortedTweets = response.data.likes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                setTweets(sortedTweets);
+                // setTweets(sortedTweets);
+                setTweets(prevItems => [...prevItems, ...sortedTweets]);
+
+                setTweetsNumber(sortedTweets.length)
+
                 setTotalTweets(response.data.total_tweets)
                 setTotalPages(response.data.total_pages)
                 setHasMore(page < response.data.total_pages)
@@ -160,12 +186,14 @@ export const LikesPage = () => {
                 }
             }
 
-            setLoading(false);
+            // setLoading(false);
         } catch (error) {
             console.error(error);
             if (error.response && error.response.status === 401) {
                 window.location.href = '/login';
             }
+        } finally {
+            setLoading(false)
         }
     };
 
@@ -276,7 +304,7 @@ export const LikesPage = () => {
     return (
         
                 <>
-                    <ProfileHeader tweets={tweets} username={username} userId={userId} profileImageURL={profileImageURL}
+                    <ProfileHeader tweetsNumber={totalTweets} username={username} userId={userId} profileImageURL={profileImageURL}
                         headerImageURL={headerImageURL} />
                     <Container className="mt-5 text-center" fluid>
                         <Row>
@@ -307,7 +335,7 @@ export const LikesPage = () => {
                     )) ) : (<p>No tweets available</p>)}
                     </div>
                     )}
-                    <Row className="pagination-controls">
+                    {/* <Row className="pagination-controls">
                         <Col>
                             <Button disabled={page <= 1} onClick={()=> setPage(page-1)}> Previous</Button>
 
@@ -320,7 +348,7 @@ export const LikesPage = () => {
                         <Button disabled={page >= totalPages} onClick={()=> setPage(page+1)}>Next</Button>
                         
                         </Col>
-                    </Row>
+                    </Row> */}
                     </>
              
     );

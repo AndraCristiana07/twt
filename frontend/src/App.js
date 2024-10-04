@@ -30,12 +30,12 @@ function App() {
           <Route path="/logout" element={<Logout/>} />
           <Route path="/register" element={<Register/>} />
           <Route path="/tweet/:tweetId/images/:imageNumber" element={<ImageViewer/>} />
+          <Route path="/image/:userId/:name" element={<UserImageViewer/>} />
 
         <Route element={<Layout/>}>
           <Route path="/" element={<FollowingTimeline/>} />
           <Route path="/tweet/:tweetId" element={<TweetView/>} />
           <Route path="/tweet/comment/:commentId" element={<CommentView/>} />
-         
           <Route path="/notifications" element={<Notifications/>} />
           {/* <Route path="/messages" element={<Messages />} /> */}
           <Route path="/conversation/:sender" element={<Conversation/>}/>
@@ -45,7 +45,6 @@ function App() {
           <Route path="/following" element={<FollowingTimeline/>} />
           <Route path="/likes/:userId" element={<LikesPage/>} />
           <Route path="/search" element={<Search/>} />
-          <Route path="/image/:userId/:name" element={<UserImageViewer/>} />
         </Route>
 
       </Routes>

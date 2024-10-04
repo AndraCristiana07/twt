@@ -21,6 +21,7 @@ export const UserImageViewer = () => {
     const apiUrl = process.env.REACT_APP_API_URL;
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
     const navigate = useNavigate();
+
     const fetchUserInfo = async (user_id) => {
         try {
             const accessToken = localStorage.getItem('access_token');
@@ -90,17 +91,14 @@ export const UserImageViewer = () => {
         <><img src={close} alt='close' style={{ width: "5vh", cursor:"pointer" }} onClick={(e) => navigate(-1)} /><Container style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             {name === "header" && (
                 <div>
-                    <p>Header</p>
-                    <img src={imageHeader} style={{ width: "60vh"}} alt='header' />
+                    <img src={imageHeader} style={{ width: "89vh"}} alt='header' />
 
                 </div>
 
             )}
-            {/* <p>aaaaaaaaaa</p> */}
             {name === "profile" && (
                 <div>
-                    <p>Profile</p>
-                    <img src={imageProfile} style={{ width: "20vh", height: "20vh",  borderRadius: "50%" }} alt='profile' />
+                    <img src={imageProfile} style={{ width: "40vh", height: "40vh",  borderRadius: "50%" }} alt='profile' />
 
                 </div>
             )}

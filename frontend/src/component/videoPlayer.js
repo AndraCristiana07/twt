@@ -297,6 +297,13 @@ export const VideoPlayer = ({ video_info }) => {
 
             muted={false}
             style={{ objectFit: "cover", width: '100%' }}
+            // style={{
+            //     objectFit: "cover",
+            //     width: `100%`,
+            //     height: `70vh`,
+            //     position:'relative',
+            //     zIndex:2
+            // }}
             src={null}
         />
     );

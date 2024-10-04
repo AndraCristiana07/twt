@@ -283,7 +283,7 @@ const ImageViewer = () => {
                                     return (
                                         <Carousel.Item key={index} style={{ padding: "5%", justifyContent: 'center', height:'100%' }}>
                                             <div style={{ width: '100%', height: '50%', position:'relative',zIndex:1}} >
-
+                                            
                                             <VideoPlayer
                                                 key={index}
                                                 duration={tweet.duration[duration_index]}
@@ -291,7 +291,7 @@ const ImageViewer = () => {
                                                 style={{
                                                     objectFit: "cover",
                                                     width: `100%`,
-                                                    height: `100%`,
+                                                    height: `70vh`,
                                                     position:'relative',
                                                     zIndex:2
                                                 }} />
@@ -304,7 +304,7 @@ const ImageViewer = () => {
                                         <Carousel.Item key={index} style={{ padding: "5%", justifyContent: 'center', height:'100%' }}>
                                             <div style={{ width: '100%', height: '50%', position:'relative',zIndex:1}} >
 
-                                                <img src={image} alt={`Slide ${index}`} style={{ width: '100%', height: '50%',objectFit: "cover", }} />
+                                                <img src={image} alt={`Slide ${index}`} style={{ width: '100vh', height: '70vh',objectFit: "cover", }} />
                                             </div>
                                         </Carousel.Item>
                                     )

@@ -2,12 +2,12 @@ import { Outlet } from "react-router-dom";
 import { Container, Row, Col } from "react-bootstrap";
 import Menu from './drawer';
 
- const Layout = ({setNotifications}) => {
+ const Layout = ({}) => {
     return (
         <Container fluid style={{ position: "relative" }}>
         <Row>
             <Col xs={3} style={{ position: "fixed", height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
-                <Menu setNotifications={setNotifications} />
+                <Menu  />
             </Col>
             <Col xs={{ span: 6, offset: 3 }}>
                 <Outlet />

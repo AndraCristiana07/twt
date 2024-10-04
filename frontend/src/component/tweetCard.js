@@ -459,7 +459,7 @@ export const TweetCard = ({
 
                                 {tweetHeader(tweet.original_tweet)}
                                 
-                                {tweetGrid(tweet.original_tweet, images, videos)}
+                                {tweet.image_urls && tweetGrid(tweet.original_tweet, images, videos)}
                                 {tweetButtons(tweet, tweet.original_tweet)}
                             </Container>
                         )}
@@ -468,12 +468,12 @@ export const TweetCard = ({
                                 <Row>
                                     <Col>{tweet.content}</Col>
                                 </Row>
-                                {tweetGrid(tweet, images, videos)}
+                                {tweet.image_urls && tweetGrid(tweet, images, videos)}
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
                                 
                                     {/* TODO: change videos for ogtweet */}
-                                    {tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
+                                    {tweet.original_tweet.image_urls && tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
                                     {tweetDate(tweet)}
                                 </Card>
                                 {tweet.original_tweet && tweetButtons(tweet.original_tweet, tweet)}
@@ -486,7 +486,7 @@ export const TweetCard = ({
                 // <Card.Body>
                 <div>
                     {tweetHeader(tweet)}
-                    {tweetGrid(tweet, images, videos)}
+                    {tweet.image_urls && tweetGrid(tweet, images, videos)}
                     {tweetDate(tweet)}
                     {tweetButtons(tweet, tweet)}
                 </div>

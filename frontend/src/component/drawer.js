@@ -15,7 +15,7 @@ import notificationsImg from "../assets/notifications.svg";
 import profile from "../assets/profile.svg";
 import quill from "../assets/quill.svg";
 
-const Menu = ({ setNotifications }) => {
+const Menu = ({  }) => {
     const navigate = useNavigate();
     const handleItemClick = (path) => {
         navigate(path);

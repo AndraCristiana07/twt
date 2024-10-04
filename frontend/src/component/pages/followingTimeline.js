@@ -24,10 +24,8 @@ export const FollowingTimeline = () => {
   const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
 
   useEffect(() => {
-    // window.addEventListener('scroll', handleScroll(page));
-    // return () => window.removeEventListener('scroll', handleScroll);
     fetchAllTweets(page);
-   
+  
   }, [page]);
 
   useEffect(() => {
@@ -70,7 +68,9 @@ export const FollowingTimeline = () => {
       );
 
       // setTweets(response.data.tweets)
-      setTweets(prevItems => [...prevItems, ...response.data.tweets]);
+      const sortedTweets = response.data.tweets.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      setTweets(prevItems => [...prevItems, ...sortedTweets]);
       console.log("tweet data "+ JSON.stringify(response.data.tweets))
       setTotalTweets(response.data.total_tweets)
       setTotalPages(response.data.total_pages)
@@ -89,37 +89,6 @@ export const FollowingTimeline = () => {
 
     }
   };
-
-  // const handleScroll = (page) => {
-  //     if (
-  //         window.innerHeight +
-  //         document.documentElement.scrollTop ===
-  //         document.documentElement.offsetHeight
-  //     ) {
-  //         setPage(prevPage => prevPage + 1);
-  //     }
-  //     fetchAllTweets(page);
-  // };
-  // useEffect(() => {
-  //     window.addEventListener('scroll', handleScroll);
-  //     return () =>
-  //         window.removeEventListener('scroll', handleScroll);
-  // }, []);
-  // const handleScroll = (page) => {
-  //   if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || setLoading) {
-  //     return;
-  //   }
-  //   // fetchAllTweets(page);
-  //     // setPage(prevPage => prevPage + 1);
-  //   fetchAllTweets(page);
-
-
-  // };
-  
-  // useEffect(() => {
-  //   window.addEventListener('scroll', handleScroll);
-  //   return () => window.removeEventListener('scroll', handleScroll);
-  // }, [setLoading]);
 
 
   const handleLike = async (tweetId) => {
