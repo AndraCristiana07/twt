@@ -15,6 +15,7 @@ import axiosInstance from "../interceptor/axiosInstance";
 
 import Menu from "./drawer";
 import { CommentButtons } from "./commentButtons";
+import { TweetCard } from "./tweetCard";
 
 const CommentView = () => {
     const { commentId } = useParams();
@@ -59,6 +60,7 @@ const CommentView = () => {
     }
 
     const navigate = useNavigate();
+
     useEffect(() => {
         if (localStorage.getItem('access_token') === null) {
             window.location.href = '/login';
@@ -67,6 +69,7 @@ const CommentView = () => {
             fetchCommentComments();
         }
     }, [commentId]);
+    
     const [images, setImages] = useState([]);
 
     const imageFetch = async (path) => {
@@ -82,7 +85,8 @@ const CommentView = () => {
         const response = await axiosInstance.get(url, config);
         return URL.createObjectURL(response.data)
     }
-    
+    console.log(`comId ${commentId}`)
+
     const fetchCommentData = async (commentId) => {
         try {
             const accessToken = localStorage.getItem('access_token');
@@ -93,6 +97,7 @@ const CommentView = () => {
                 },
                 withCredentials: true
             });
+            console.log(`comment is like this: ${JSON.stringify(response.data)}`)
 
             const data = response.data;
             setComment(data);
@@ -302,6 +307,15 @@ const CommentView = () => {
         
     }
 
+    const handleCommentNavigation = (comment) => {
+        navigate(`/tweet/comment/${comment.id}`);
+    
+    }
+
+    const handleNavigation = () => {
+        navigate(`/tweet/${commentId}`);
+    
+    }
     const tweetImages = (tweet) => {
         return (
             <Row>
@@ -363,7 +377,7 @@ const CommentView = () => {
     
     return (
           <Container fluid style={{ position: "relative" }}>
-            <Row>
+            {/* <Row>
                 <Col xs={2} style={{ position: "fixed", height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
                     <Menu />
                 </Col>
@@ -385,7 +399,6 @@ const CommentView = () => {
                                         <Container fluid>
                                             {tweetheader(comment.original_tweet)}
                                             {tweetImages(comment.original_tweet)}
-                                            {/* {tweetButtons(comment.original_tweet, comment)} */}
                                             <CommentButtons comment={comment} handleCommentLike={handleLike} handleUnlikeComment={handleUnlike} handleRetweetComment={handleRetweet} handleUnretweetComment={handleUnretweet} />
 
                                         </Container>
@@ -462,6 +475,46 @@ const CommentView = () => {
                     ) : (
                         <p>No comments yet.</p>
                     )}
+                </Col>
+            </Row> */}
+            <Row>
+                
+                <Col xs={{ span: 9, offset: 2 }}>
+                    <Button onClick={() => navigate(-1)} style={{ background: "transparent", border: "none" }} className="btn mt-3">
+                        <img src={back} alt="Back" width={"20px"} />
+                    </Button>
+                    {console.log(`comment data ${JSON.stringify(comment)}`)}
+                    <TweetCard 
+                            key={comment.id}
+                            handleNavigation={handleNavigation}
+                            tweetUrl={'tweet_comment'}
+                            isComment={true}
+                            originalTweetImg={comment.original_tweet}
+                            tweet={comment}
+                            handleLike={handleLike}
+                            handleUnlike={handleUnlike}
+                            handleRetweet={handleRetweet}
+                            handleUnretweet={handleUnretweet}
+                        />
+                     <h5>Comments</h5>
+                    {/* {Array.isArray(comments) && comments.length > 0 ? (
+                        comments.map(comment => (
+                            < TweetCard 
+                                key={comment.id}
+                                handleNavigation={handleCommentNavigation}
+                                tweetUrl={'tweet_comment'}
+                                isComment={true}
+                                originalTweetImg={comment.original_tweet}
+                                tweet={comment}
+                                handleLike={handleCommentLike}
+                                handleUnlike={handleUnlikeComment}
+                                handleRetweet={handleRetweetComment}
+                                handleUnretweet={handleUnretweetComment}
+                            />
+                        ))
+                    ) : (
+                        <p>No comments available.</p>
+                    )} */}
                 </Col>
             </Row>
         </Container>

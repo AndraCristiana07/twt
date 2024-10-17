@@ -117,14 +117,14 @@ const TweetView = () => {
 
     const handleOpenDialog = () => setShowPostCommentDialog(true);
     const handleCloseDialog = () => setShowPostCommentDialog(false);
-    const handleOpenCommentDialog = (commentId) => {
-        setCommentIdForDialog(commentId);
-        setShowPostCommentOnCommentDialog(true);
-    };
-    const handleCloseCommentDialog = () => {
-        setShowPostCommentOnCommentDialog(false);
-        setCommentIdForDialog(null);
-    };
+    // const handleOpenCommentDialog = (commentId) => {
+    //     setCommentIdForDialog(commentId);
+    //     setShowPostCommentOnCommentDialog(true);
+    // };
+    // const handleCloseCommentDialog = () => {
+    //     setShowPostCommentOnCommentDialog(false);
+    //     setCommentIdForDialog(null);
+    // };
 
     const handleNavigation = (tweet) => {
         navigate(`/tweet/${tweet.id}`);
@@ -401,7 +401,8 @@ const TweetView = () => {
                     < TweetCard 
                         key={tweet.id}
                         handleNavigation={handleNavigation}
-                        whatItIs={'get_tweet'}
+                        tweetUrl={'get_tweet'}
+                        isComment={false}
                         originalTweetImg={tweet.original_tweet}
                         tweet={tweet}
                         handleLike={handleLike}
@@ -417,10 +418,13 @@ const TweetView = () => {
                     <h5>Comments</h5>
                     {Array.isArray(comments) && comments.length > 0 ? (
                         comments.map(comment => (
+                            <div>
+                            {console.log(`the ids are ${comment.id}`)}
                             < TweetCard 
                                 key={comment.id}
                                 handleNavigation={handleCommentNavigation}
-                                whatItIs={'tweet_comment'}
+                                tweetUrl={'tweet_comment'}
+                                isComment={true}
                                 originalTweetImg={comment.original_tweet}
                                 tweet={comment}
                                 handleLike={handleCommentLike}
@@ -428,6 +432,8 @@ const TweetView = () => {
                                 handleRetweet={handleRetweetComment}
                                 handleUnretweet={handleUnretweetComment}
                             />
+                            </div>
+
                             
                             // <Card key={comment.id} className="mb-3 comment-card" onClick={() => navigate(`/tweet/comment/${comment.id}`)}>
                             //     <Card.Body>

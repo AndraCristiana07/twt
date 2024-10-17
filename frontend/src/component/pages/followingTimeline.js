@@ -232,7 +232,7 @@ export const FollowingTimeline = () => {
                   <TweetCard
                     key={tweet.id}
                     handleNavigation={handleNavigation}
-                    whatItIs={'get_tweet'}
+                    tweetUrl={'get_tweet'}
                     originalTweetImg={tweet.original_tweet}
                     tweet={tweet}
                     handleLike={handleLike}

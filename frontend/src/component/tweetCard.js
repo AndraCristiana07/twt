@@ -7,6 +7,7 @@ import comment_icon from "../assets/comment.svg";
 import retweet_icon from "../assets/retweet.svg";
 import retweet_icon_red from "../assets/retweet-red.svg";
 import { Comment } from "./modals/commentPost";
+import { CommentOnComment } from './modals/commentOnComment';
 import "../css/tweetCard.css";
 import { RetweetTweet } from './modals/RetweetDialog';
 import axiosInstance from '../interceptor/axiosInstance';
@@ -22,8 +23,9 @@ import { ImagesGrid } from './imageGrid';
 
 export const TweetCard = ({
     handleNavigation,
-    whatItIs,
+    tweetUrl,
     tweet,
+    isComment,
     originalTweetImg,
     handleLike,
     handleUnlike,
@@ -331,7 +333,7 @@ export const TweetCard = ({
         return (
             <><div style={{ display: "flex", justifyContent: 'center' }}>
     
-                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} whatItIs={whatItIs} />)}
+                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} tweetUrl={tweetUrl} />)}
             </div>
             {/* <div style={{ display: "flex", justifyContent: 'center' }}>
                 {tweet.image_urls && tweet.image_urls.map((media, index) => {
@@ -353,7 +355,13 @@ export const TweetCard = ({
                 {tweet && (
 
                     <Row onClick={(e) => e.stopPropagation()}>
+                       {isComment ? (
+                            <CommentOnComment show={showPostCommentDialog} handleClose={handleCloseDialog} commentId={tweet.id} />
+
+                       ) : (
                         <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={originalTweet.id} />
+
+                       )}
                         <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={originalTweet.id} />
 
                         <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }}
@@ -441,6 +449,8 @@ export const TweetCard = ({
 
 
     return (
+        <>
+        {console.log(`this comments id : ${tweet.id}`)}
         <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
             handleNavigation(tweet)
         }}>
@@ -455,7 +465,7 @@ export const TweetCard = ({
                         </Row>
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
-                                {console.log("tweet id for retweet" + tweet.id)}
+                                {/* {console.log("tweet id for retweet" + tweet.id)} */}
                                 {tweet.original_tweet.id === null && tweet.retweet_id &&
                                     <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
                                 <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
@@ -496,5 +506,6 @@ export const TweetCard = ({
                 // </Card.Body>
             )}
         </Card>
+        </>
     );
 };

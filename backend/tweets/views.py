@@ -622,6 +622,7 @@ class PostCommentView(APIView):
     def post(self, request, tweet_id):
         user_id = str(request.user.id)
         content = request.data.get("content")
+        
         media = request.FILES.getlist("images")
         comment_id = uuid4()
 
@@ -694,17 +695,6 @@ class PostCommentView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-    # def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, comment_id):
-    #     url = f"http://seaweedfsfiler:8888/tweets/{comment_id}/{image.name}"
-    #     path = f"/tweets/{comment_id}/{image.name}"
-    #     file = {"file": image.file}
-    #     response = requests.post(url, files=file)
-    #     if response.status_code == 201:
-    #         # return response.json()["fileId"]
-    #         return path
-
-    #     else:
-    #         return Exception("Failed to upload image to SeaweedFS")
 
 
 class PostCommentonComment(APIView):
@@ -713,12 +703,19 @@ class PostCommentonComment(APIView):
     def post(self, request, comment_id):
         user_id = str(request.user.id)
         content = request.data["content"]
+        media = request.FILES.getlist("images")
+        
         comment_in_db_id = uuid4()
         likes = 0
         comments = 0
         retweets = 0
         session = get_session()
 
+        if len(media) > 4:
+            return Response(
+                {"status": "fail", "message": "You can upload a maximum of 4 images"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         comment = session.execute(
             "SELECT * FROM twitter.comments WHERE id = %s", (comment_id,)
         ).one()
@@ -730,29 +727,55 @@ class PostCommentonComment(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not content:
+        if not content and not media:
             return Response(
                 {"status": "fail", "message": "Content cannot be empty"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        media_urls = []
+        video_durations = []
+        for file in media:
+            extension = os.path.splitext(file.name)[1][1:].strip().lower()
+
+            if extension in ["png", "jpg", "jpeg"]:
+
+                logger.debug("image")
+                image_url = PostTweetView.upload_image_to_seaweedfs(file, comment_in_db_id)
+                media_urls.append(image_url)
+
+            elif extension in ["mp4", "webm"]:
+
+                logger.debug("video")
+                logger.debug("ext" + extension)
+
+                video_url, duration = PostTweetView.upload_video_to_seaweedfs(file, comment_in_db_id)
+
+                media_urls.append(video_url)
+                video_durations.append(duration)
+        # session.execute(
+        #     """
+        # INSERT INTO twitter.comments (id, tweet_id,user_id, content, created_at, retweet_id, likes, comments, retweets)
+        # VALUES (%s, %s, %s, %s, toTimestamp(now()), %s, %s, %s, %s )
+        # """,
+        #     (
+        #         comment_in_db_id,
+        #         comment_id,
+        #         user_id,
+        #         content,
+        #         None,
+        #         likes,
+        #         comments,
+        #         retweets,
+        #     ),
+        # )
         session.execute(
             """
-        INSERT INTO twitter.comments (id, tweet_id,user_id, content, created_at, retweet_id, likes, comments, retweets)
-        VALUES (%s, %s, %s, %s, toTimestamp(now()), %s, %s, %s, %s )
+        INSERT INTO twitter.comments (id, tweet_id,user_id, content, created_at, retweet_id, image_urls, video_duration, likes, comments, retweets)
+        VALUES (%s, %s, %s, %s, toTimestamp(now()), %s, %s, %s, 0, 0, 0)
         """,
-            (
-                comment_in_db_id,
-                comment_id,
-                user_id,
-                content,
-                None,
-                likes,
-                comments,
-                retweets,
-            ),
+            (comment_in_db_id, comment_id, user_id, content, None, media_urls, video_durations),
         )
-
         current_comments = comment.comments if comment.comments is not None else 0
         updated_comments = current_comments + 1
         session.execute(
