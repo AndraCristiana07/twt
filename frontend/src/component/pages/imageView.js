@@ -11,7 +11,7 @@ import { CommentButtons } from '../commentButtons';
 import { VideoPlayer } from '../videoPlayer';
 import zIndex from '@mui/material/styles/zIndex';
 
-const ImageViewer = () => {
+const ImageViewer = ({whatItIs}) => {
     const { tweetId, imageNumber } = useParams(); 
     const navigate = useNavigate();
     const [images, setImages] = useState([]);
@@ -21,6 +21,7 @@ const ImageViewer = () => {
     const [error, setError] = useState(null);
     const apiUrl = process.env.REACT_APP_API_URL;
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
+    console.log("whatItIs" + whatItIs)
 
     const imageFetch = async (path) => {
         const url = `${seaweedUrl}${path}`;
@@ -80,7 +81,9 @@ const ImageViewer = () => {
         const fetchImages = async (tweetId) => {
             try {
                 const accessToken = localStorage.getItem('access_token');
-                const response = await axiosInstance.get(`${apiUrl}/tweets/get_tweet/${tweetId}`, {
+                // const response = await axiosInstance.get(`${apiUrl}/tweets/get_tweet/${tweetId}`, {
+                const response = await axiosInstance.get(`${apiUrl}/tweets/${whatItIs}/${tweetId}`, {
+
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${accessToken}`

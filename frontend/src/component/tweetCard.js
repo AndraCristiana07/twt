@@ -21,6 +21,8 @@ import { ImagesGrid } from './imageGrid';
 
 
 export const TweetCard = ({
+    handleNavigation,
+    whatItIs,
     tweet,
     originalTweetImg,
     handleLike,
@@ -328,7 +330,8 @@ export const TweetCard = ({
         // },
         return (
             <><div style={{ display: "flex", justifyContent: 'center' }}>
-                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} />)}
+    
+                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} whatItIs={whatItIs} />)}
             </div>
             {/* <div style={{ display: "flex", justifyContent: 'center' }}>
                 {tweet.image_urls && tweet.image_urls.map((media, index) => {
@@ -439,7 +442,7 @@ export const TweetCard = ({
 
     return (
         <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
-            navigate(`/tweet/${tweet.id}`)
+            handleNavigation(tweet)
         }}>
             {tweet.retweet_id !== null && (
                 <Card.Body>

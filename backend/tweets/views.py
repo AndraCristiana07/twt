@@ -5,8 +5,8 @@ import os
 import subprocess
 import time
 import math
-from uuid import UUID, uuid4
 
+from uuid import UUID, uuid4
 import ffmpeg
 import requests
 from app.models import User
@@ -19,6 +19,8 @@ from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from elasticsearch_dsl.query import MultiMatch
+# from tweets.documents import TweetDocument
 from tweets.cassandra_def import get_session
 
 logger = logging.getLogger(__name__)
@@ -32,8 +34,6 @@ def is_valid_uuid(uuid_to_test, version=4):
     except ValueError:
         return False
     return str(uuid_obj) == uuid_to_test
-
-
 
 class PostTweetView(APIView):
     permission_classes = [IsAuthenticated]
@@ -65,7 +65,7 @@ class PostTweetView(APIView):
             if extension in ["png", "jpg", "jpeg"]:
 
                 logger.debug("image")
-                image_url = self.upload_image_to_seaweedfs(file, tweet_id)
+                image_url = PostTweetView.upload_image_to_seaweedfs(file, tweet_id)
                 media_urls.append(image_url)
 
             elif extension in ["mp4", "webm"]:
@@ -73,7 +73,7 @@ class PostTweetView(APIView):
                 logger.debug("video")
                 logger.debug("ext" + extension)
 
-                video_url, duration = self.upload_video_to_seaweedfs(file, tweet_id)
+                video_url, duration = PostTweetView.upload_video_to_seaweedfs(file, tweet_id)
 
                 media_urls.append(video_url)
                 video_durations.append(duration)
@@ -163,7 +163,7 @@ class PostTweetView(APIView):
 
         return output_path
 
-    def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, tweet_id):
+    def upload_image_to_seaweedfs( image: InMemoryUploadedFile, tweet_id):
 
         url = f"http://seaweedfsfiler:8888/tweets/{tweet_id}/image/{image.name}"
         path = f"/tweets/{tweet_id}/image/{image.name}"
@@ -214,7 +214,7 @@ class PostTweetView(APIView):
 
             
 
-    def upload_video_to_seaweedfs(self, video: InMemoryUploadedFile, tweet_id):
+    def upload_video_to_seaweedfs( video: InMemoryUploadedFile, tweet_id):
         try:
             
             video_name = os.path.splitext(video.name)[0].strip()
@@ -622,10 +622,10 @@ class PostCommentView(APIView):
     def post(self, request, tweet_id):
         user_id = str(request.user.id)
         content = request.data.get("content")
-        images = request.FILES.getlist("images")
+        media = request.FILES.getlist("images")
         comment_id = uuid4()
 
-        if len(images) > 4:
+        if len(media) > 4:
             return Response(
                 {"status": "fail", "message": "You can upload a maximum of 4 images"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -642,24 +642,43 @@ class PostCommentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not content and not images:
+        if not content and not media:
             return Response(
                 {"status": "fail", "message": "Content cannot be empty"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        image_urls = []
-        if images:
-            for image in images:
-                image_url = self.upload_image_to_seaweedfs(image, tweet_id)
-                image_urls.append(image_url)
+        media_urls = []
+        video_durations = []
+        for file in media:
+            extension = os.path.splitext(file.name)[1][1:].strip().lower()
+
+            if extension in ["png", "jpg", "jpeg"]:
+
+                logger.debug("image")
+                image_url = PostTweetView.upload_image_to_seaweedfs(file, comment_id)
+                media_urls.append(image_url)
+
+            elif extension in ["mp4", "webm"]:
+
+                logger.debug("video")
+                logger.debug("ext" + extension)
+
+                video_url, duration = PostTweetView.upload_video_to_seaweedfs(file, comment_id)
+
+                media_urls.append(video_url)
+                video_durations.append(duration)
+        # if media:
+        #     for image in media:
+        #         image_url = self.upload_image_to_seaweedfs(image, tweet_id)
+        #         media_urls.append(image_url)
 
         session.execute(
             """
-        INSERT INTO twitter.comments (id, tweet_id,user_id, content, created_at, retweet_id, image_urls, likes, comments, retweets)
-        VALUES (%s, %s, %s, %s, toTimestamp(now()), %s, %s, 0, 0, 0)
+        INSERT INTO twitter.comments (id, tweet_id,user_id, content, created_at, retweet_id, image_urls, video_duration, likes, comments, retweets)
+        VALUES (%s, %s, %s, %s, toTimestamp(now()), %s, %s, %s, 0, 0, 0)
         """,
-            (comment_id, tweet_id, user_id, content, None, image_urls),
+            (comment_id, tweet_id, user_id, content, None, media_urls, video_durations),
         )
 
         current_comments = tweet.comments if tweet.comments is not None else 0
@@ -675,17 +694,17 @@ class PostCommentView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-    def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, comment_id):
-        url = f"http://seaweedfsfiler:8888/tweets/{comment_id}/{image.name}"
-        path = f"/tweets/{comment_id}/{image.name}"
-        file = {"file": image.file}
-        response = requests.post(url, files=file)
-        if response.status_code == 201:
-            # return response.json()["fileId"]
-            return path
+    # def upload_image_to_seaweedfs(self, image: InMemoryUploadedFile, comment_id):
+    #     url = f"http://seaweedfsfiler:8888/tweets/{comment_id}/{image.name}"
+    #     path = f"/tweets/{comment_id}/{image.name}"
+    #     file = {"file": image.file}
+    #     response = requests.post(url, files=file)
+    #     if response.status_code == 201:
+    #         # return response.json()["fileId"]
+    #         return path
 
-        else:
-            return Exception("Failed to upload image to SeaweedFS")
+    #     else:
+    #         return Exception("Failed to upload image to SeaweedFS")
 
 
 class PostCommentonComment(APIView):
@@ -779,6 +798,10 @@ class GetCommentsView(APIView):
             ).one()
             delete_retweet_id = str(retweet.id) if retweet else None
 
+            result = session.execute(
+                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                (comment_id,),
+            ).one()
             try:
                 user = User.objects.get(id=row.user_id)
             except User.DoesNotExist:
@@ -789,6 +812,10 @@ class GetCommentsView(APIView):
 
             serializer = UserSerializer(user)
             username = serializer.data["username"]
+            profile_image = serializer.data["profile_image"]
+            media_url = row.image_urls
+            
+            video_info = FriendsTimelineView.get_videos_info(comment_id, str(media_url))
 
             comment_details = {
                 "id": str(row.id),
@@ -802,11 +829,94 @@ class GetCommentsView(APIView):
                 "comments": row.comments,
                 "retweets": row.retweets,
                 "username": username,
+                "profile_image": profile_image,
+                
                 "isLiked": bool(isLiked),
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
+                "duration": row.video_duration,  
+                
+                
             }
+            if result and result.retweet_id:
+                original_tweet_id = result.retweet_id
+                original_tweet = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                    (original_tweet_id,),
+                ).one()
+
+                if original_tweet:
+                    try:
+                        original_user = User.objects.get(id=original_tweet.user_id)
+                    except User.DoesNotExist:
+                        return Response(
+                            {"message": "User does not exist"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    original_serializer = UserSerializer(original_user)
+                    original_tweet_username = original_serializer.data["username"]
+                    original_tweet_profile_image = original_serializer.data["profile_image"]
+
+                    original_tweet_like = session.execute(
+                        "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                        (original_tweet_id, user_id),
+                    ).one()
+                    original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+
+                    original_tweet_retweet = session.execute(
+                        "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                        (original_tweet_id, user_id),
+                    ).one()
+                    original_tweet_delete_retweet_id = (
+                        str(original_tweet_retweet.id) if original_tweet_retweet else None
+                    )
+                    
+                    original_media_url = original_tweet.image_urls
+                    original_video_info = FriendsTimelineView.get_videos_info(original_tweet_id, original_media_url)
+
+                    comment_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content if original_tweet.content else "Original Tweet Deleted",
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_like),
+                        "isRetweeted": bool(original_tweet_retweet),
+                        "like_id": original_tweet_like_id,
+                        "delete_retweet_id": original_tweet_delete_retweet_id,
+                        "username": original_tweet_username,
+                        "profile_image": original_tweet_profile_image,
+                        "video_info": original_video_info
+                    }
+                else:
+                    comment_details["original_tweet"] = {
+                        "id": None,
+                        "user_id": None,
+                        "content": "Original tweet does not exist",
+                        "created_at": None,
+                        "retweet_id": None,
+                        "image_urls": [],
+                        "likes": 0,
+                        "comments": 0,
+                        "retweets": 0,
+                        "isLiked": False,
+                        "isRetweeted": False,
+                        "like_id": None,
+                        "delete_retweet_id": None,
+                        "username": "Unknown User",
+                        "profile_image": "default_profile_image_url",
+                        "video_info": None,
+                        "duration": None
+                    }
+
             comments.append(comment_details)
 
         return Response({"comments": comments}, status=status.HTTP_200_OK)
@@ -907,7 +1017,9 @@ class GetSingleCommentView(APIView):
             (comment_id, user_id),
         ).one()
         delete_retweet_id = str(retweet.id) if retweet else None
-
+        media_url = tweet.image_urls
+        video_info = FriendsTimelineView.get_videos_info(comment_id, str(media_url))
+        
         try:
             user = User.objects.get(id=tweet.user_id)
         except User.DoesNotExist:
@@ -962,6 +1074,9 @@ class GetSingleCommentView(APIView):
             original_tweet_delete_retweet_id = (
                 str(original_tweet_retweet.id) if retweet else None
             )
+            original_tweet_media_url = original_tweet.image_urls
+            original_tweet_video_info = FriendsTimelineView.get_videos_info(original_tweet_id, original_tweet_media_url)
+        
 
             return Response(
                 {
@@ -979,6 +1094,8 @@ class GetSingleCommentView(APIView):
                     "isRetweeted": bool(isRetweeted),
                     "like_id": like_id,
                     "delete_retweet_id": delete_retweet_id,
+                    "video_info": video_info if video_info else None,
+                    "duration": tweet.video_duration,  
                     "original_tweet": {
                         "id": str(original_tweet_id),
                         "user_id": original_tweet.user_id,
@@ -994,6 +1111,8 @@ class GetSingleCommentView(APIView):
                         "like_id": original_tweet_like_id,
                         "delete_retweet_id": original_tweet_delete_retweet_id,
                         "username": original_tweet_username,
+                        "video_info": original_tweet_video_info if original_tweet_video_info else None,
+                        "duration": original_tweet.video_duration,  
                     },
                 },
                 status=status.HTTP_200_OK,
@@ -1015,6 +1134,8 @@ class GetSingleCommentView(APIView):
                 "isRetweeted": bool(isRetweeted),
                 "like_id": like_id,
                 "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
+                "duration": tweet.video_duration,  
             },
             status=status.HTTP_200_OK,
         )
@@ -2390,10 +2511,10 @@ class GetCurrentUserComments(APIView):
 #         tweets = []
 #         for hit in response:
 #             tweets.append({
-#                 'id': hit.id,
-#                 'user_id': hit.user_id,
+#                 # 'id': hit.id,
+#                 # 'user_id': hit.user_id,
 #                 'content': hit.content,
-#                 'created_at': hit.created_at
+#                 # 'created_at': hit.created_at
 #             })
 
 #         return Response({'tweets': tweets}, status=status.HTTP_200_OK)

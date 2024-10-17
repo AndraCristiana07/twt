@@ -123,7 +123,8 @@ export const TweetForm = () => {
             {/* {error && <p style={{ color: 'red' }}>{error}</p>}
             {success && <p style={{ color: 'green' }}>{success}</p>} */}
             {message && <p style={{ color: 'green' }}>{message}</p>}
-        </Form><div>
+        </Form>
+            <div>
                 {previews.map((preview, index) => {
                     // const isVideo = files[index].endsWith('.mp4')
                     const isVideo = files[index].type.startsWith('video');

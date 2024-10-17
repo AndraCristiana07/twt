@@ -23,6 +23,11 @@ export const FollowingTimeline = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
 
+  const handleNavigation = (tweet) => {
+    navigate(`/tweet/${tweet.id}`);
+
+  }
+
   useEffect(() => {
     fetchAllTweets(page);
   
@@ -226,6 +231,8 @@ export const FollowingTimeline = () => {
                 tweets.map(tweet => (
                   <TweetCard
                     key={tweet.id}
+                    handleNavigation={handleNavigation}
+                    whatItIs={'get_tweet'}
                     originalTweetImg={tweet.original_tweet}
                     tweet={tweet}
                     handleLike={handleLike}

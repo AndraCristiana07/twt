@@ -327,6 +327,7 @@ export const LikesPage = () => {
                                         key={tweet.id}
                                         originalTweetImg={tweet.original_tweet}
                                         tweet={tweet}
+                                        whatItIs={'get_tweet'}
                                         handleLike={handleLike}
                                         handleUnlike={handleUnlike}
                                         handleRetweet={handleRetweet}

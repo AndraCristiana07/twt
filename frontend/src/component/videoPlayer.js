@@ -69,7 +69,7 @@ export const VideoPlayer = ({ video_info }) => {
                 // console.log("video path" + video_info.path)
 
                 const durationsFetch = async () => {
-                    let url = `http://192.168.0.138:8888${video_info.path}/out.m3u8`;
+                    let url = `http://192.168.0.190:8888${video_info.path}/out.m3u8`;
                     const accessToken = localStorage.getItem('access_token');
                     const config = {
                         headers: {
@@ -84,7 +84,7 @@ export const VideoPlayer = ({ video_info }) => {
                 const durations = await durationsFetch();
 
                 const initFetch = async () => {
-                    let url = `http://192.168.0.138:8888${video_info.path}/init.mp4`;
+                    let url = `http://192.168.0.190:8888${video_info.path}/init.mp4`;
                     const accessToken = localStorage.getItem('access_token');
                     const config = {
                         headers: {
@@ -100,7 +100,7 @@ export const VideoPlayer = ({ video_info }) => {
                     const url_tok = video_info.path.split('/');
                     const vid_name = url_tok[url_tok.length - 1];
                     const vid_name_wo_extension = vid_name.split('.')[0]
-                    let url = `http://192.168.0.138:8888${video_info.path}/${vid_name_wo_extension}_${chunk_idx}.mp4`;
+                    let url = `http://192.168.0.190:8888${video_info.path}/${vid_name_wo_extension}_${chunk_idx}.mp4`;
                     const accessToken = localStorage.getItem('access_token');
                     const config = {
                         headers: {
