@@ -4,7 +4,7 @@ from cassandra.policies import DCAwareRoundRobinPolicy
 import time
 
 def get_session():
-    cluster = Cluster(['cassandra'])
+    cluster = Cluster(['cassandra'], load_balancing_policy=DCAwareRoundRobinPolicy(local_dc='datacenter1'), protocol_version=4)
     # cluster.auth_provider = PlainTextAuthProvider(username='andra', password='andra')
     session = cluster.connect()
     return session
@@ -38,6 +38,7 @@ def init_cassandra():
             content TEXT,
             retweet_id UUID,
             image_urls LIST<TEXT>, 
+            video_duration LIST<TEXT>,
             likes INT,
             comments INT,
             retweets INT,
@@ -63,6 +64,7 @@ def init_cassandra():
         created_at timestamp,
         retweet_id UUID,
         image_urls LIST<TEXT>, 
+        video_duration LIST<TEXT>,
         likes INT,
         comments INT,
         retweets INT,

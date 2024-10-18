@@ -23,11 +23,16 @@ import { TweetCard } from "../tweetCard";
 
 export const LikesPage = () => {
     const [tweets, setTweets] = useState([]);
+    const [tweetsNumber, setTweetsNumber] = useState() 
     const [showPostCommentDialog, setShowPostCommentDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [tweetIdToDelete, setTweetIdToDelete] = useState(null);
     const {userId} = useParams();
-
+    const [page,setPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [totalTweets, setTotalTweets] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [hasMore, setHasMore]= useState(true)
     const [username, setUsername] = useState();
     const [user, setUser] = useState({});
     const [followers, setFollowers] = useState([]);
@@ -58,15 +63,34 @@ export const LikesPage = () => {
         if (localStorage.getItem('access_token') === null) {
             window.location.href = '/login';
         } else {
-            fetchTweets();
+            fetchTweets(page);
 
             fetchUserInfo(userId);
             fetchProfileImage()
         }
-    }, [userId, profileImageURL]);
+    }, [userId, page]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (
+                window.innerHeight + document.documentElement.scrollTop + 1 >=
+                document.documentElement.scrollHeight
+            ) {
+                if (!loading && hasMore) {
+                    setPage(prevPage => prevPage + 1);
+                }
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [loading, hasMore]);
+
+
 
     const fetchProfileImage = async () => {
-        console.log("?" + profileImageURL);
         if (profileImageURL) {
             const fetchedProfileImage = await imageFetch(profileImageURL);
             setTweetIcon(fetchedProfileImage);
@@ -97,7 +121,6 @@ export const LikesPage = () => {
                     'Authorization': `Bearer ${accessToken}`
                 },
             });
-            console.log(response.data);
             const fetchedProfileImage = response.data.profile_image;
             const fetchedHeaderImage = response.data.header_image;
             setProfileImageURL(fetchedProfileImage);
@@ -111,10 +134,15 @@ export const LikesPage = () => {
 
 
 
-    const fetchTweets = async () => {
+    const fetchTweets = async (page) => {
         try {
+            setLoading(true)
             const accessToken = localStorage.getItem('access_token');
-            const response = await axiosInstance.get(`${apiUrl}/tweets/get_user_likes/${userId}`, {
+            const response = await axiosInstance.get(`${apiUrl}/tweets/get_user_likes/${userId}/?page=${page}`, {
+                params: {
+                    page:page,
+                    page_size: pageSize
+                },
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
@@ -124,7 +152,14 @@ export const LikesPage = () => {
 
             if (Array.isArray(response.data.likes)) {
                 const sortedTweets = response.data.likes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                setTweets(sortedTweets);
+                // setTweets(sortedTweets);
+                setTweets(prevItems => [...prevItems, ...sortedTweets]);
+
+                setTweetsNumber(sortedTweets.length)
+
+                setTotalTweets(response.data.total_tweets)
+                setTotalPages(response.data.total_pages)
+                setHasMore(page < response.data.total_pages)
             } else {
                 console.error('Response data structure is unexpected:', response.data);
             }
@@ -151,12 +186,14 @@ export const LikesPage = () => {
                 }
             }
 
-            setLoading(false);
+            // setLoading(false);
         } catch (error) {
             console.error(error);
             if (error.response && error.response.status === 401) {
                 window.location.href = '/login';
             }
+        } finally {
+            setLoading(false)
         }
     };
 
@@ -265,15 +302,11 @@ export const LikesPage = () => {
     
 
     return (
-        <Container fluid className="mt-5 text-center" style={{ position: "relative" }}>
-            <Row>
-                <Col xs={3} style={{ position: "fixed", height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
-                    <Menu />
-                </Col>
-                <Col xs={{ span: 6, offset: 3 }}>
-                    <ProfileHeader tweets={tweets} username={username} userId={userId} profileImageURL={profileImageURL}
+        
+                <>
+                    <ProfileHeader tweetsNumber={totalTweets} username={username} userId={userId} profileImageURL={profileImageURL}
                         headerImageURL={headerImageURL} />
-                    <Container fluid>
+                    <Container className="mt-5 text-center" fluid>
                         <Row>
                             <Col>
                                 <Button style={{ color: "grey", background: "transparent", border: "none" }} onClick={() => navigate(`/profile/${userId}`)}>Posts</Button>
@@ -289,11 +322,12 @@ export const LikesPage = () => {
 
                             {tweets.length > 0 ? (
                                 tweets.map(tweet => (
-                      
+                    
                                 <TweetCard
                                         key={tweet.id}
                                         originalTweetImg={tweet.original_tweet}
                                         tweet={tweet}
+                                        tweetUrl={'get_tweet'}
                                         handleLike={handleLike}
                                         handleUnlike={handleUnlike}
                                         handleRetweet={handleRetweet}
@@ -302,12 +336,21 @@ export const LikesPage = () => {
                     )) ) : (<p>No tweets available</p>)}
                     </div>
                     )}
-                </Col>
-                <Col xs={{ span: 3, offset: 9 }}
-                    style={{ position: "fixed", height: "100vh", overflow: "auto", borderLeft: "1px solid black" }}>
+                    {/* <Row className="pagination-controls">
+                        <Col>
+                            <Button disabled={page <= 1} onClick={()=> setPage(page-1)}> Previous</Button>
 
-                </Col>
-            </Row>
-        </Container>
+                        </Col>
+                        <Col>
+                        <p>{page}</p>
+
+                        </Col>
+                        <Col>
+                        <Button disabled={page >= totalPages} onClick={()=> setPage(page+1)}>Next</Button>
+                        
+                        </Col>
+                    </Row> */}
+                    </>
+             
     );
 };

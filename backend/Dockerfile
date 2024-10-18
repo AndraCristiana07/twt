@@ -1,12 +1,13 @@
 FROM python:3.12.4
 
 # COPY app        /app/app
-# COPY backend    /app/backend
+# COPY core    /app/core
 # COPY tweets     /app/tweets
 # COPY manage.py requirements.txt /app/
 RUN mkdir /sqlite3
 WORKDIR /app
-# RUN apt-get update
+RUN apt-get update
+RUN apt install --yes ffmpeg
 # RUN apt install tree
 # RUN tree
 RUN python3 -m venv venv

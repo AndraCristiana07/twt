@@ -15,7 +15,7 @@ import { CommentOnComment } from "../modals/commentOnComment";
 import Menu from "../drawer";
 import { RetweetTweet } from '../modals/RetweetDialog';
 import { Grid } from '@mui/material';
-
+import { TweetCard } from "../tweetCard";
 
 const TweetView = () => {
     const { tweetId } = useParams();
@@ -30,7 +30,9 @@ const TweetView = () => {
     const [commentIdForDialog, setCommentIdForDialog] = useState(null);
     const [showQuoteDialog, setShowQuoteDialog] = React.useState(false);
     const seaweedUrl = process.env.REACT_APP_SEAWEED_URL;
-
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [tweetIdToDelete, setTweetIdToDelete] = useState(null);
+   
     const handleOpenQuoteDialog = (e) => {
         e.stopPropagation();
         setShowQuoteDialog(true);
@@ -115,15 +117,25 @@ const TweetView = () => {
 
     const handleOpenDialog = () => setShowPostCommentDialog(true);
     const handleCloseDialog = () => setShowPostCommentDialog(false);
-    const handleOpenCommentDialog = (commentId) => {
-        setCommentIdForDialog(commentId);
-        setShowPostCommentOnCommentDialog(true);
-    };
-    const handleCloseCommentDialog = () => {
-        setShowPostCommentOnCommentDialog(false);
-        setCommentIdForDialog(null);
-    };
+    // const handleOpenCommentDialog = (commentId) => {
+    //     setCommentIdForDialog(commentId);
+    //     setShowPostCommentOnCommentDialog(true);
+    // };
+    // const handleCloseCommentDialog = () => {
+    //     setShowPostCommentOnCommentDialog(false);
+    //     setCommentIdForDialog(null);
+    // };
 
+    const handleNavigation = (tweet) => {
+        navigate(`/tweet/${tweet.id}`);
+    
+    }
+    const handleCommentNavigation = (comment) => {
+        navigate(`/tweet/comment/${comment.id}`);
+    
+    }
+
+    
     const handleLike = async () => {
         try {
             const accessToken = localStorage.getItem('access_token');
@@ -259,6 +271,27 @@ const TweetView = () => {
             console.log(error);
         }
     };
+    
+    const handleDeleteTweet = async (tweetIdToDelete) => {
+        try {
+            const accessToken = localStorage.getItem('access_token');
+            await axiosInstance.delete(`${apiUrl}/tweets/delete/${tweetIdToDelete}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                withCredentials: true,
+            });
+            setTweet(tweet.id !== tweetIdToDelete);
+            handleCloseDeleteDialog();
+        } catch (error) {
+            console.log(error);
+        }
+    };
+    const handleCloseDeleteDialog = () => {
+        setShowDeleteDialog(false);
+        setTweetIdToDelete(null);
+    };
 
 
     const imageFetch = async (path) => {
@@ -360,69 +393,24 @@ const TweetView = () => {
     return (
         <Container fluid style={{ position: "relative" }}>
             <Row>
-                <Col xs={2} style={{ position: "fixed", height: "100vh", overflow: "auto", borderRight: "1px solid black" }}>
-                    <Menu />
-                </Col>
+                
                 <Col xs={{ span: 9, offset: 2 }}>
                     <Button onClick={() => navigate(-1)} style={{ background: "transparent", border: "none" }} className="btn mt-3">
                         <img src={back} alt="Back" width={"20px"} />
                     </Button>
-                    <Card key={tweet.id} className="mb-4 tweet-card">
-                        {tweet.retweet_id !== null && (
-                            <Card.Body>
-                                <Container fluid>
-                                    <Row>
-                                        <Col xs={10}>
-                                            <img src={retweet} alt='Retweet' style={{ width: "2vw" }} />
-                                            <p>{tweet.username} has retweeted</p>
-                                        </Col>
-                                    </Row>
-                                    {(!tweet.content && !tweet.image_urls) && (
-                                        <Container fluid>
-                                            {tweetheader(tweet.original_tweet)}
-                                            {tweetImages(tweet.original_tweet)}
-                                            {tweetButtons(tweet.original_tweet, tweet)}
-                                        </Container>
-                                    )}
-                                    {(tweet.content !== "" || tweet.image_urls) && (
-                                        <div>
-                                            <Row>
-                                                <Col> {tweet.content}
-                                                </Col>
-                                            </Row>
-                                            <Card>
-                                                {tweetheader(tweet)}
-                                                {tweetImages(tweet)}
-                                                {tweetButtons(tweet, tweet.original_tweet)}
-                                                <Row>
-                                                    <Card.Subtitle className="text-muted">
-                                                        Created at: {new Date(tweet.created_at).toLocaleString()}
-                                                    </Card.Subtitle>
-                                                </Row>
+                    < TweetCard 
+                        key={tweet.id}
+                        handleNavigation={handleNavigation}
+                        tweetUrl={'get_tweet'}
+                        isComment={false}
+                        originalTweetImg={tweet.original_tweet}
+                        tweet={tweet}
+                        handleLike={handleLike}
+                        handleUnlike={handleUnlike}
+                        handleRetweet={handleRetweet}
+                        handleUnretweet={handleUnretweet}
+                    />
 
-                                            </Card>
-                                        </div>
-                                    )}
-                                </Container>
-                            </Card.Body>
-                        )}
-                        {tweet.retweet_id === null && (
-                            <Card.Body>
-                                <Container fluid>
-                                    {tweetheader(tweet)} {console.log("tweet user: " + tweet)}
-                                    {tweetImages(tweet)}
-                                    
-                                    <Row>
-                                        <Card.Subtitle className="text-muted">
-                                            Created at: {new Date(tweet.created_at).toLocaleString()}
-                                        </Card.Subtitle>
-                                    </Row>
-                                    {tweetButtons(tweet, tweet.original_tweet)}
-                                </Container>
-                            </Card.Body>
-                        )}
-
-                    </Card>
 
 
 
@@ -430,55 +418,72 @@ const TweetView = () => {
                     <h5>Comments</h5>
                     {Array.isArray(comments) && comments.length > 0 ? (
                         comments.map(comment => (
-                            <Card key={comment.id} className="mb-3 comment-card" onClick={() => navigate(`/tweet/comment/${comment.id}`)}>
-                                <Card.Body>
-                                    {tweetheader(comment)}
-                                    <Row>
-                                        {comment.image_urls && comment.image_urls.map((commentImages, index) => (
-                                            <Grid key={index} >
-                                                <img key={index} src={commentsImages[index]} alt="comment image" style={{ maxWidth: '100%', margin: '10px 0', width: '30vw' }} />
+                            <div>
+                            {console.log(`the ids are ${comment.id}`)}
+                            < TweetCard 
+                                key={comment.id}
+                                handleNavigation={handleCommentNavigation}
+                                tweetUrl={'tweet_comment'}
+                                isComment={true}
+                                originalTweetImg={comment.original_tweet}
+                                tweet={comment}
+                                handleLike={handleCommentLike}
+                                handleUnlike={handleUnlikeComment}
+                                handleRetweet={handleRetweetComment}
+                                handleUnretweet={handleUnretweetComment}
+                            />
+                            </div>
 
-                                            </Grid>
-                                        ))}
-                                    </Row>
-                                    <Card.Subtitle className="text-muted">
-                                        Created at: {new Date(comment.created_at).toLocaleString()}
-                                    </Card.Subtitle>
-                                    <Row>
-                                        <Button className="btn" style={{ background: "transparent", border: "none", width: "60px" }} onClick={(e) => { e.stopPropagation(); handleOpenCommentDialog(comment.id); }}>
-                                            <img src={commentImg} alt="Comment" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{comment.comments}</span>
-                                        </Button>
-                                        <Button className="but" onClick={(e) => { e.stopPropagation(); comment.isLiked ? handleUnlikeComment(comment.id, comment.like_id) : handleCommentLike(comment.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                                            <img src={comment.isLiked ? heartred : heart} alt="Like" width={"20px"} />
-                                            <span style={{ color: "black" }} className="ms-1">{comment.likes}</span>
-                                        </Button>
-                                        <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={comment.id} />
+                            
+                            // <Card key={comment.id} className="mb-3 comment-card" onClick={() => navigate(`/tweet/comment/${comment.id}`)}>
+                            //     <Card.Body>
+                            //         {tweetheader(comment)}
+                            //         <Row>
+                            //             {comment.image_urls && comment.image_urls.map((commentImages, index) => (
+                            //                 <Grid key={index} >
+                            //                     <img key={index} src={commentsImages[index]} alt="comment image" style={{ maxWidth: '100%', margin: '10px 0', width: '30vw' }} />
 
-                                        {comment.isRetweeted ? (
-                                            <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleUnretweetComment(comment.id, comment.delete_retweet_id) }}>
-                                                <img src={retweetred} alt="Retweet" width={"20px"} />
-                                                <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
-                                            </Button>
-                                        ) :
-                                            (
-                                                <Dropdown onClick={(e) => { e.stopPropagation(); }} id="dropdown-basic-button" className="but" style={{ background: "transparent", border: "none", width: "80px" }}>
-                                                    <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
-                                                        <img src={retweet} alt="Retweet" width={"20px"} />
-                                                        <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
-                                                    </Dropdown.Toggle>
-                                                    <Dropdown.Menu>
-                                                        <Dropdown.Item onClick={(e) => { handleRetweetComment(comment.id); }}>Retweet</Dropdown.Item>
-                                                        <Dropdown.Item onClick={(e) => { handleOpenQuoteDialog(e); }}>Quote Retweet</Dropdown.Item>
-                                                    </Dropdown.Menu>
-                                                </Dropdown>
+                            //                 </Grid>
+                            //             ))}
+                            //         </Row>
+                            //         <Card.Subtitle className="text-muted">
+                            //             Created at: {new Date(comment.created_at).toLocaleString()}
+                            //         </Card.Subtitle>
+                            //         <Row>
+                            //             <Button className="btn" style={{ background: "transparent", border: "none", width: "60px" }} onClick={(e) => { e.stopPropagation(); handleOpenCommentDialog(comment.id); }}>
+                            //                 <img src={commentImg} alt="Comment" width={"20px"} />
+                            //                 <span style={{ color: "black" }} className="ms-1">{comment.comments}</span>
+                            //             </Button>
+                            //             <Button className="but" onClick={(e) => { e.stopPropagation(); comment.isLiked ? handleUnlikeComment(comment.id, comment.like_id) : handleCommentLike(comment.id); }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                            //                 <img src={comment.isLiked ? heartred : heart} alt="Like" width={"20px"} />
+                            //                 <span style={{ color: "black" }} className="ms-1">{comment.likes}</span>
+                            //             </Button>
+                            //             <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={comment.id} />
 
-                                            )}
+                            //             {comment.isRetweeted ? (
+                            //                 <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }} onClick={(e) => { e.stopPropagation(); handleUnretweetComment(comment.id, comment.delete_retweet_id) }}>
+                            //                     <img src={retweetred} alt="Retweet" width={"20px"} />
+                            //                     <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
+                            //                 </Button>
+                            //             ) :
+                            //                 (
+                            //                     <Dropdown onClick={(e) => { e.stopPropagation(); }} id="dropdown-basic-button" className="but" style={{ background: "transparent", border: "none", width: "80px" }}>
+                            //                         <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
+                            //                             <img src={retweet} alt="Retweet" width={"20px"} />
+                            //                             <span style={{ color: "black" }} className="ms-1">{comment.retweets}</span>
+                            //                         </Dropdown.Toggle>
+                            //                         <Dropdown.Menu>
+                            //                             <Dropdown.Item onClick={(e) => { handleRetweetComment(comment.id); }}>Retweet</Dropdown.Item>
+                            //                             <Dropdown.Item onClick={(e) => { handleOpenQuoteDialog(e); }}>Quote Retweet</Dropdown.Item>
+                            //                         </Dropdown.Menu>
+                            //                     </Dropdown>
 
-                                    </Row>
-                                    <CommentOnComment show={showPostCommentOnCommentDialog && commentIdForDialog === comment.id} handleClose={handleCloseCommentDialog} commentId={comment.id} />
-                                </Card.Body>
-                            </Card>
+                            //                 )}
+
+                            //         </Row>
+                            //         <CommentOnComment show={showPostCommentOnCommentDialog && commentIdForDialog === comment.id} handleClose={handleCloseCommentDialog} commentId={comment.id} />
+                            //     </Card.Body>
+                            // </Card>
                         ))
                     ) : (
                         <p>No comments available.</p>

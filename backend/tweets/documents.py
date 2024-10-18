@@ -1,5 +1,5 @@
-# from django_elasticsearch_dsl import Document, Index, fields
-# from django_elasticsearch_dsl.registries import registry
+from django_elasticsearch_dsl import Document, Index, fields
+from django_elasticsearch_dsl.registries import registry
 
 # tweet_index = Index('tweets')
 # tweet_index.settings(
@@ -19,7 +19,7 @@
 #     class Django:
 #         pass
 
-#     id = fields.TextField()
-#     user_id = fields.TextField()
+#     # id = fields.TextField()
+#     # user_id = fields.TextField()
 #     content = fields.TextField()
-#     created_at = fields.DateField()
+#     # created_at = fields.DateField()

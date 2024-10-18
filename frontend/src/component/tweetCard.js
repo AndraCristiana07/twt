@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, Button, Container, Row, Col, Dropdown } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import heart_icon from "../assets/heart.svg";
@@ -7,6 +7,7 @@ import comment_icon from "../assets/comment.svg";
 import retweet_icon from "../assets/retweet.svg";
 import retweet_icon_red from "../assets/retweet-red.svg";
 import { Comment } from "./modals/commentPost";
+import { CommentOnComment } from './modals/commentOnComment';
 import "../css/tweetCard.css";
 import { RetweetTweet } from './modals/RetweetDialog';
 import axiosInstance from '../interceptor/axiosInstance';
@@ -14,308 +15,23 @@ import "../css/image-grid.css"
 import default_profile from "../assets/default_profile.png"
 import deleteImg from '../assets/delete.svg';
 
-import { Grid } from "@mui/material";
+import { duration, Grid } from "@mui/material";
 import { DeleteDialog } from './modals/deleteTweetDialog';
+import { VideoPlayer } from './videoPlayer';
+import { ImagesGrid } from './imageGrid';
 
-export const ImagesGrid = ({ tweet, images }) => {
-    const navigate = useNavigate();
-
-    let gridSize = [150, 300] // w&h
-
-    const handleImageNav = (tweet, index) => {
-        navigate(`/tweet/${tweet.id}/images/${index}`);
-    }
-
-  
-    if (images.length === 1) {
-        return <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-            <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 0)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `100%`,
-                    height: `100%`
-                }}
-            />
-        </div>
-    }
-    if (images.length === 2) {
-        return <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-            <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 0)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `50%`,
-                    height: `100%`
-                }}
-            />
-            <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageNav(tweet, 1)
-                }}
-                style={{
-                    objectFit: "cover",
-                    width: `50%`,
-                    height: `100%`
-                }}
-            />
-        </div>
-    }
-    if (images.length === 3) {
-        return <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "row", justifyContent: 'center' }}>
-            <div style={{
-                width: `50%`,
-                height: `100%`
-            }}>
-                <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 0)
-                    }} 
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-            <div style={{
-                display: 'flex', flexDirection: 'column',
-                width: `50%`,
-                height: `100%`
-            }}>
-                <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 1)
-                    }} 
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `50%`
-                    }}
-                />
-                <img key={2} src={images[2]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 2)
-                    }} 
-                    style={{
-                        objectFit: "cover",
-                        width: `100%`,
-                        height: `50%`
-                    }}
-                />
-            </div>
-        </div>
-    }
-    if (images.length === 4) {
-        return <div id='images-grid' style={{  padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
-            <div style={{
-                width: `100%`,
-                height: `50%`,
-                display: 'flex',
-                flexDirection: 'row'
-            }}>
-                <img key={0} src={images[0]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 0)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-                <img key={1} src={images[1]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 1)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-            <div style={{
-                display: 'flex', flexDirection: 'row',
-                width: `100%`,
-                height: `50%`
-            }}>
-                <img key={2} src={images[2]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 2)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-                <img key={3} src={images[3]} alt="tweet image" className="grid-image"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleImageNav(tweet, 3)
-                    }}
-                    style={{
-                        objectFit: "cover",
-                        width: `50%`,
-                        height: `100%`
-                    }}
-                />
-            </div>
-        </div>
-    }
-
-
-    // return (<div>
-    //     {/*<h1>WIP</h1>*/}
-    //     <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
-    //         {images.map((image, index) => (
-    //             //     <div key={index}>
-
-
-    //             //    {handleExtension(image,index)}
-    //             //    </div>
-
-    //             <img key={index} src={image} alt="tweet image" className="grid-image"
-    //                 onClick={(e) => {
-    //                     e.stopPropagation();
-    //                     handleImageNav(tweet, index)
-    //                 }} // TODO
-    //                 style={{ width: `${imageSize[0]}px`, height: `${imageSize[1]}px`, objectFit: "cover" }}
-    //             />
-
-
-    //         ))}
-    //     </div>
-    // </div>)
-}
-
-// export const ImagesGrid = ({ tweet, images }) => {
-//     const navigate = useNavigate();
-
-//     let gridSize = [150, 300] // w&h
-//     const handleImageNav = (tweet, index) => {
-//         navigate(`/tweet/${tweet.id}/images/${index}`);
-//     };
-
-//     const renderMedia = (item, index) => {
-//         const fileExtension = item.split('.').pop().toLowerCase();
-        
-//         if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
-//             return (
-//                 <img
-//                     key={index}
-//                     src={item}
-//                     alt={`tweet media ${index + 1}`}
-//                     className="grid-image"
-//                     onClick={(e) => {
-//                         e.stopPropagation();
-//                         handleImageNav(tweet, index);
-//                     }}
-//                     style={{ objectFit: "cover", width: '100%', height: '100%' }}
-//                 />
-//             );
-//         } else if (['mp4', 'webm'].includes(fileExtension)) {
-//             return (
-//                 <video
-//                     key={index}
-//                     controls
-//                     className="grid-video"
-//                     style={{ objectFit: "cover", width: '100%', height: '100%' }}
-//                 >
-//                     <source src={item} type={`video/${fileExtension}`} />
-//                 </video>
-//             );
-//         } else {
-//             return null;
-//         }
-//     };
-
-//     const renderGrid = () => {
-//         if (images.length === 1) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-//                     {renderMedia(images[0], 0)}
-//                 </div>
-//             );
-//         }
-//         if (images.length === 2) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", justifyContent: 'center' }}>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[0], 0)}
-//                     </div>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[1], 1)}
-//                     </div>
-//                 </div>
-//             );
-//         } 
-//         if (images.length === 3) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "row", justifyContent: 'center' }}>
-//                     <div style={{ width: `50%`, height: `100%` }}>
-//                         {renderMedia(images[0], 0)}
-//                     </div>
-//                     <div style={{ display: 'flex', flexDirection: 'column', width: `50%`, height: `100%` }}>
-//                         <div style={{ width: `100%`, height: `50%` }}>
-//                             {renderMedia(images[1], 1)}
-//                         </div>
-//                         <div style={{ width: `100%`, height: `50%` }}>
-//                             {renderMedia(images[2], 2)}
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         } 
-//         if (images.length === 4) {
-//             return (
-//                 <div id='images-grid' style={{ padding: "5%", display: 'flex', flexDirection: "column", justifyContent: 'center' }}>
-//                     <div style={{ width: `100%`, height: `50%`, display: 'flex', flexDirection: 'row' }}>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[0], 0)}
-//                         </div>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[1], 1)}
-//                         </div>
-//                     </div>
-//                     <div style={{ width: `100%`, height: `50%`, display: 'flex', flexDirection: 'row' }}>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[2], 2)}
-//                         </div>
-//                         <div style={{ width: `50%`, height: `100%` }}>
-//                             {renderMedia(images[3], 3)}
-//                         </div>
-//                     </div>
-//                 </div>
-//             );
-//         }
-//     };
-
-//     return renderGrid();
-// };
 
 export const TweetCard = ({
+    handleNavigation,
+    tweetUrl,
     tweet,
+    isComment,
     originalTweetImg,
     handleLike,
     handleUnlike,
     handleRetweet,
     handleUnretweet,
-    
+
 }) => {
     const navigate = useNavigate();
     const [showPostCommentDialog, setShowPostCommentDialog] = React.useState(false);
@@ -325,6 +41,7 @@ export const TweetCard = ({
     const [modalIndex, setModalIndex] = useState(0);
     const [images, setImages] = useState([]);
     const [videos, setVideos] = useState([])
+    const [videoInfo, setVideoInfo] = useState();
     const [ogTweetImages, setOgTweetImages] = useState([]);
     const [imageProfile, setImageProfile] = useState(null);
     const [profileImageURL, setProfileImageURL] = useState();
@@ -351,6 +68,7 @@ export const TweetCard = ({
     }
 
     const handleOpenDeleteDialog = (tweetId) => {
+        console.log("tweet id", tweetId)
         setTweetIdToDelete(tweetId);
         setShowDeleteDialog(true);
     };
@@ -392,6 +110,12 @@ export const TweetCard = ({
         }
     }
 
+    // console.log("time duration " + tweet.duration)
+    // var time = tweet.duration.split(":")
+    // console.log("time duration days " + time[1].replace(/[\[\]']/g, ''))
+    // console.log("timeee " + time[2].split('.')[1].replace('\]', "").replace('\'', ""))
+    // var sec = parseInt(time[0].replace('\[', "").replace('\'', "") )* 360 + parseInt(time[1]) * 60 + parseInt(time[2].split('.')[0]) + parseInt(time[2].split('.')[1]) * 0.001 
+    // console.log("SECS "  + typeof(sec) + sec)
     // useEffect(() => {
     //     const f = async () => {
     //         const fetchedImages = await Promise.all(
@@ -470,46 +194,72 @@ export const TweetCard = ({
     //         f();
     //     }  
     // }, [tweet]);
+
+    const isVideo = (url) => url.endsWith('.mp4') || url.endsWith('.webm')
+    const isImage = (url) => url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg')
+
     useEffect(() => {
+        const mediaUrl = tweet.image_urls
+        
+        
         const fetchImages = async () => {
             let images = [];
             let ogImages = [];
+            let videos = [];
+            if(mediaUrl){
+                const imageArray = mediaUrl.filter((fileUrl) => isImage(fileUrl))
+        
 
-            if (tweet.image_urls && tweet.image_urls.length > 0) {
-                const fetchedImages = await Promise.all(
-                    tweet.image_urls.map(async (url) => await imageFetch(url))
-                );
-                images = images.concat(fetchedImages)
-                // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
-                //     const fetchedOgImages = await Promise.all(
-                //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
-                //     );
-                //     ogImages = ogImages.concat(fetchedOgImages)
-                // }
+                if (imageArray && imageArray.length > 0 && mediaUrl) {
+                    const fetchedImages = await Promise.all(
+                        imageArray.map(async (url) => await imageFetch(url))
+                    );
+                    images = images.concat(fetchedImages)
+                    // if (tweet.original_tweet && tweet.original_tweet.image_urls) {
+                    //     const fetchedOgImages = await Promise.all(
+                    //         tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
+                    //     );
+                    //     ogImages = ogImages.concat(fetchedOgImages)
+                    // }
 
-                setImages(images)
-                // setOgTweetImages(ogImages);
+                    setImages(images)
+                    // setOgTweetImages(ogImages);
+                }
             }
 
 
-            if (tweet.original_tweet && tweet.original_tweet.image_urls) {
-                const fetchedOgImages = await Promise.all(
-                    tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
-                );
-                // if (tweet.image_urls && tweet.image_urls.length > 0) {
-                //     const fetchedImages = await Promise.all(
-                //         tweet.image_urls.map(async (url) => await imageFetch(url))
-                //     );
-                //     images = images.concat(fetchedImages)
-                //     setImages(images)
-                // }
-                ogImages = ogImages.concat(fetchedOgImages)
-                setOgTweetImages(ogImages);
+            if (tweet.original_tweet){
+                const originalTweetMediaUrl = tweet.original_tweet.image_urls 
+
+                if(originalTweetMediaUrl){
+        
+                    const originalTweetimageArray = originalTweetMediaUrl.filter((fileUrl) => isImage(fileUrl))
+        
+            
+                    
+                    if ( originalTweetMediaUrl && originalTweetimageArray) {
+                        const fetchedOgImages = await Promise.all(
+                            tweet.original_tweet.image_urls.map(async (url) => await imageFetch(url))
+                        );
+                        // if (tweet.image_urls && tweet.image_urls.length > 0) {
+                        //     const fetchedImages = await Promise.all(
+                        //         tweet.image_urls.map(async (url) => await imageFetch(url))
+                        //     );
+                        //     images = images.concat(fetchedImages)
+                        //     setImages(images)
+                        // }
+                        ogImages = ogImages.concat(fetchedOgImages)
+                        setOgTweetImages(ogImages);
+                    }
+                }
             }
+
         };
         fetchImages();
         fetchUserInfo(tweet.user_id)
         fetchProfileImage();
+        setVideoInfo(tweet.video_info)
+        // console.log(videoInfo)
 
     }, [tweet, profileImageURL])
 
@@ -524,125 +274,185 @@ export const TweetCard = ({
     const tweetHeader = (tweet) => {
         return (
             <>
-                <Row>
-                    <Col xs={2}>
-                        <Card.Title onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/profile/${tweet.user_id}`);
-                        }}>
-                            <img src={imageProfile} alt="icon" style={{ borderRadius: "50%", width: "1.5em", height: "1.5em" }}/>
-                             @{tweet.username}
-                        </Card.Title>
-                    </Col>
-                    {tweet.user_id === currUserId && (
-                        <Col>
-                            {tweet.retweet_id === null &&
-                                <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }}/>
+                {tweet && (
 
-                            }
+                    <><Row>
+                        <Col xs={2}>
+                            <Card.Title onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/profile/${tweet.user_id}`);
+                            }}>
+                                <img src={imageProfile} alt="icon" style={{ borderRadius: "50%", width: "1.5em", height: "1.5em" }} />
+                                @{tweet.username}
+                            </Card.Title>
                         </Col>
-                    )}
-                </Row>
-                <Row>
-                    <Card.Text>
-                        {tweet.content}
-                    </Card.Text>
-                    <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog}  />
-                </Row>
+                        {tweet.user_id === currUserId && (
+                            <Col>
+                                {tweet.retweet_id === null &&
+                                    <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
+                            
+                            </Col>
+                        )}
+                    </Row><Row>
+                            <Card.Text>
+                                {tweet.content}
+                            </Card.Text>
+                            <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
+                        </Row></>
+                )}
+                {!tweet && (
+                    <Row> </Row>
+                )}
+
             </>
         )
     }
 
-    const tweetImages = (tweet, images) => {
+    const tweetGrid = (tweet, images) => {
+
+        let duration_index = 0
+        // {
+        //     "id": "d24757ba-6df1-4831-b86d-b3ece98cad09",
+        //     "user_id": "1",
+        //     "content": "",
+        //     "created_at": "2024-09-26T15:19:30.777000",
+        //     "retweet_id": "b8ecd1b8-3617-4b77-b190-286c648f4690",
+        //     "image_urls": null,
+        //     "duration": null,
+        //     "likes": 1,
+        //     "comments": 0,
+        //     "retweets": 1,
+        //     "username": "andra",
+        //     "profile_image": "",
+        //     "isLiked": false,
+        //     "isRetweeted": false,
+        //     "like_id": null,
+        //     "delete_retweet_id": null,
+        //     "video_info": null
+        // },
         return (
-            <div style={{ display: "flex", justifyContent: 'center' }}>
-                {images.length > 0 && (<ImagesGrid tweet={tweet} images={images}/>)}
+            <><div style={{ display: "flex", justifyContent: 'center' }}>
+    
+                {tweet.image_urls.length > 0 && (<ImagesGrid tweet={tweet} media={images} tweetUrl={tweetUrl} />)}
             </div>
+            {/* <div style={{ display: "flex", justifyContent: 'center' }}>
+                {tweet.image_urls && tweet.image_urls.map((media, index) => {
+                    if (media.endsWith('.mp4')) {
+                        return <VideoPlayer
+                            key={index}
+                            duration={tweet.duration[duration_index]}
+                            video_info={tweet.video_info[duration_index++]} />
+                    }
+                })}
+            </div> */}
+            </>
         )
     }
 
     const tweetButtons = (tweet, originalTweet) => {
         return (
-            <Row onClick={(e) => e.stopPropagation()}>
-                <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={originalTweet.id} />
-                <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={originalTweet.id} />
+            <>
+                {tweet && (
 
-                <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }}
-                    onClick={handleOpenDialog}>
-                    <img src={comment_icon} alt="Comment" width={"20px"} />
-                    <span style={{ color: "black" }} className="ms-1">{originalTweet.comments}</span>
-                </Button>
+                    <Row onClick={(e) => e.stopPropagation()}>
+                       {isComment ? (
+                            <CommentOnComment show={showPostCommentDialog} handleClose={handleCloseDialog} commentId={tweet.id} />
 
-                <Button className="but" onClick={(e) => {
-                    e.stopPropagation();
-                    originalTweet.isLiked ? handleUnlike(originalTweet.id, originalTweet.like_id) : handleLike(originalTweet.id);
-                }} style={{ background: "transparent", border: "none", width: "80px" }}>
-                    <img src={originalTweet.isLiked ? heart_icon_red : heart_icon} alt="Like" width={"20px"} />
-                    <span style={{ color: "black" }} className="ms-1">{originalTweet.likes}</span>
-                </Button>
-                {originalTweet.isRetweeted ? (
-                    // <Button className="but" style={{background: "transparent", border: "none", width: "80px"}}
-                    //         onClick={(e) => {
-                    //             e.stopPropagation();
-                    //             handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
-                    //         }}>
-                    //     <img src={retweet_icon_red} alt="Retweet" width={"20px"}/>
-                    //     <span style={{color: "black"}} className="ms-1">{originalTweet.retweets}</span>
-                    // </Button>
-                    <Dropdown onClick={(e) => {
-                        e.stopPropagation();
-                    }} id="dropdown-basic-button" className="but"
-                        style={{ background: "transparent", border: "none", width: "80px" }}>
-                        <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
-                            <img src={retweet_icon_red} alt="Retweet" width={"20px"} />
-                            <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                            <Dropdown.Item onClick={(e) => {
-                                handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
-                            }}>Delete Retweet</Dropdown.Item>
-                            <Dropdown.Item onClick={(e) => {
-                                handleOpenQuoteDialog(e);
-                            }}>Quote Retweet</Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown>
-                ) :
-                    (
-                        <Dropdown onClick={(e) => {
+                       ) : (
+                        <Comment show={showPostCommentDialog} handleClose={handleCloseDialog} tweetId={originalTweet.id} />
+
+                       )}
+                        <RetweetTweet show={showQuoteDialog} handleClose={handleCloseQuoteDialog} tweetId={originalTweet.id} />
+
+                        <Button className="but" style={{ background: "transparent", border: "none", width: "80px" }}
+                            onClick={handleOpenDialog}>
+                            <img src={comment_icon} alt="Comment" width={"20px"} />
+                            <span style={{ color: "black" }} className="ms-1">{originalTweet.comments}</span>
+                        </Button>
+
+                        <Button className="but" onClick={(e) => {
                             e.stopPropagation();
-                        }} id="dropdown-basic-button" className="but"
-                            style={{ background: "transparent", border: "none", width: "80px" }}>
-                            <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
-                                <img src={retweet_icon} alt="Retweet" width={"20px"} />
-                                <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                                <Dropdown.Item onClick={(e) => {
-                                    handleRetweet(originalTweet.id);
-                                }}>Retweet</Dropdown.Item>
-                                <Dropdown.Item onClick={(e) => {
-                                    handleOpenQuoteDialog(e);
-                                }}>Quote Retweet</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                    )}
-            </Row>
+                            originalTweet.isLiked ? handleUnlike(originalTweet.id, originalTweet.like_id) : handleLike(originalTweet.id);
+                        }} style={{ background: "transparent", border: "none", width: "80px" }}>
+                            <img src={originalTweet.isLiked ? heart_icon_red : heart_icon} alt="Like" width={"20px"} />
+                            <span style={{ color: "black" }} className="ms-1">{originalTweet.likes}</span>
+                        </Button>
+                        {originalTweet.isRetweeted ? (
+                            // <Button className="but" style={{background: "transparent", border: "none", width: "80px"}}
+                            //         onClick={(e) => {
+                            //             e.stopPropagation();
+                            //             handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
+                            //         }}>
+                            //     <img src={retweet_icon_red} alt="Retweet" width={"20px"}/>
+                            //     <span style={{color: "black"}} className="ms-1">{originalTweet.retweets}</span>
+                            // </Button>
+                            <Dropdown onClick={(e) => {
+                                e.stopPropagation();
+                            }} id="dropdown-basic-button" className="but"
+                                style={{ background: "transparent", border: "none", width: "80px" }}>
+                                <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
+                                    <img src={retweet_icon_red} alt="Retweet" width={"20px"} />
+                                    <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu>
+                                    <Dropdown.Item onClick={(e) => {
+                                        handleUnretweet(originalTweet.id, originalTweet.delete_retweet_id)
+                                    }}>Delete Retweet</Dropdown.Item>
+                                    <Dropdown.Item onClick={(e) => {
+                                        handleOpenQuoteDialog(e);
+                                    }}>Quote Retweet</Dropdown.Item>
+                                </Dropdown.Menu>
+                            </Dropdown>
+                        ) :
+                            (
+                                <Dropdown onClick={(e) => {
+                                    e.stopPropagation();
+                                }} id="dropdown-basic-button" className="but"
+                                    style={{ background: "transparent", border: "none", width: "80px" }}>
+                                    <Dropdown.Toggle style={{ background: "transparent", border: "none", width: "80px" }}>
+                                        <img src={retweet_icon} alt="Retweet" width={"20px"} />
+                                        <span style={{ color: "black" }} className="ms-1">{originalTweet.retweets}</span>
+                                    </Dropdown.Toggle>
+                                    <Dropdown.Menu>
+                                        <Dropdown.Item onClick={(e) => {
+                                            handleRetweet(originalTweet.id);
+                                        }}>Retweet</Dropdown.Item>
+                                        <Dropdown.Item onClick={(e) => {
+                                            handleOpenQuoteDialog(e);
+                                        }}>Quote Retweet</Dropdown.Item>
+                                    </Dropdown.Menu>
+                                </Dropdown>
+                            )}
+                    </Row>
+                )}
+            </>
+
+
         )
     }
 
     const tweetDate = (tweet) => {
         return (
-            <Row>
-                <Card.Subtitle className="text-muted">
-                    Created at: {new Date(tweet.created_at).toLocaleString()}
-                </Card.Subtitle>
-            </Row>
+            <>
+                {tweet && (
+
+
+                    <Row>
+                        <Card.Subtitle className="text-muted">
+                            Created at: {new Date(tweet.created_at).toLocaleString()}
+                        </Card.Subtitle>
+                    </Row>
+                )}
+            </>
         )
     }
 
+
     return (
-        <Card key={tweet.id}  className="mb-4 tweet-card"  onClick={() => {
-            navigate(`/tweet/${tweet.id}`)
+        <>
+        {console.log(`this comments id : ${tweet.id}`)}
+        <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
+            handleNavigation(tweet)
         }}>
             {tweet.retweet_id !== null && (
                 <Card.Body>
@@ -655,8 +465,14 @@ export const TweetCard = ({
                         </Row>
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
+                                {/* {console.log("tweet id for retweet" + tweet.id)} */}
+                                {tweet.original_tweet.id === null && tweet.retweet_id &&
+                                    <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
+                                <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
+
                                 {tweetHeader(tweet.original_tweet)}
-                                {tweetImages(tweet.original_tweet, images)}
+                                
+                                {tweet.image_urls && tweetGrid(tweet.original_tweet, images, videos)}
                                 {tweetButtons(tweet, tweet.original_tweet)}
                             </Container>
                         )}
@@ -665,10 +481,12 @@ export const TweetCard = ({
                                 <Row>
                                     <Col>{tweet.content}</Col>
                                 </Row>
-                                {tweetImages(tweet, images)}
+                                {tweet.image_urls && tweetGrid(tweet, images, videos)}
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
-                                    {tweetImages(tweet.original_tweet, ogTweetImages)}
+                                
+                                    {/* TODO: change videos for ogtweet */}
+                                    {tweet.original_tweet.image_urls && tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
                                     {tweetDate(tweet)}
                                 </Card>
                                 {tweet.original_tweet && tweetButtons(tweet.original_tweet, tweet)}
@@ -681,12 +499,13 @@ export const TweetCard = ({
                 // <Card.Body>
                 <div>
                     {tweetHeader(tweet)}
-                    {tweetImages(tweet, images)}
+                    {tweet.image_urls && tweetGrid(tweet, images, videos)}
                     {tweetDate(tweet)}
                     {tweetButtons(tweet, tweet)}
                 </div>
                 // </Card.Body>
             )}
         </Card>
+        </>
     );
 };

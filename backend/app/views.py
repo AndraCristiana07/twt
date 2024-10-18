@@ -25,7 +25,10 @@ from app.kafka_producer import follow_user
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import logging
 import json
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
+# from confluent_kafka import Consumer, KafkaError
+from aiokafka import AIOKafkaConsumer
+from aiokafka.errors import KafkaError, KafkaTimeoutError
 
 
 class HomeView(APIView):
@@ -57,7 +60,7 @@ class IsLoggedIn(APIView):
 
 class ProfilePicture(APIView):
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request):
         user = request.user
         user_id = request.user.id
@@ -165,6 +168,8 @@ class RegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        logging.info(request.data)
+
         serializer = UserSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -180,22 +185,69 @@ class RegisterView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-class LoginView(APIView):
-    def post(self, request):
-        email = request.data["email"]
-        password = request.data["password"]
+# class LoginView(APIView):
+#     permission_classes = (AllowAny,)
 
+#     def post(self, request):
+#         email = request.data.get("email")
+#         password = request.data.get("password")
+
+        
+#         if not email or not password:
+#             return Response(
+#                 {"message": "Email and password are required"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+
+#         try:
+            
+#             user = User.objects.get(email=email)
+#         except User.DoesNotExist:
+#             raise AuthenticationFailed("Account does not exist")
+
+     
+#         user = authenticate(username=user.username, password=password)
+
+#         if user is None:
+#             raise AuthenticationFailed("Invalid email or password")
+
+        
+#         access_token = AccessToken.for_user(user)
+#         refresh_token = RefreshToken.for_user(user)
+
+#         return Response({
+#             "message": "Login successful",
+#             "access": str(access_token),
+#             "refresh": str(refresh_token),
+#         }, status=status.HTTP_200_OK)
+
+class LoginView(APIView):
+    permission_classes = (AllowAny,)
+    
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+        if not email or not password:
+            return Response(
+                {"message": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             raise AuthenticationFailed("Account does  not exist")
+        
+        user = authenticate(email=email, password=password)
         if user is None:
-            raise AuthenticationFailed("User does not exist")
-        if not user.check_password(password):
-            raise AuthenticationFailed("Incorrect Password")
+            # raise AuthenticationFailed("User does not exist")
+            return Response(
+                {"message": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST,
+                
+            )
+        # if not user.check_password(password):
+        #     raise AuthenticationFailed("Incorrect Password")
         access_token = AccessToken.for_user(user)
         refresh_token = RefreshToken.for_user(user)
-        return Response({"access_token": access_token, "refresh_token": refresh_token})
+        return Response({"message":"Login successful","access_token": access_token, "refresh_token": refresh_token})
 
 class GetUserView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -403,16 +455,47 @@ class SearchUserView(APIView):
 
         return Response(users, status=status.HTTP_200_OK)
 
-
-
-class ChatConsumer(WebsocketConsumer):
-    def connect(self):
-        self.accept()
-    def disconnect(self, close_code):
-        pass
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
-        self.send(text_data=json.dumps({
-            'message': message
-        }))
+class NotificationsConsumer(AsyncWebsocketConsumer):
+    async def consume_notif(self):
+        consumer = AIOKafkaConsumer(
+            'follow_notification',
+            # group_id='group-id-1',
+            # session_timeout_ms=60 * 60,
+            bootstrap_servers='kafka:9092')
+        await consumer.start()
+        try:
+            async for msg in consumer:
+                logging.debug(
+                    "{}:{:d}:{:d}: key={} value={} timestamp_ms={}".format(
+                        msg.topic, msg.partition, msg.offset, msg.key, msg.value,
+                        msg.timestamp)
+                )
+                data = msg.value.decode()
+                if json.loads(data).get('following') == self.scope['user'].id:
+                    logging.info((type(data)))
+                    await self.send(data)
+            # commit with 
+            # consumer.commit(msg.offset + 1)
+        finally:
+            await consumer.stop()
+      
+    async def connect(self):
+        logging.info('>- connect')
+        # self.send('AAAA')
+        # self.send('BBB')
+        # https://www.geeksforgeeks.org/token-authentication-in-django-channels-and-websockets/
+        await self.accept()
+        # print(self.scope)
+        # await self.accept()
+        user = self.scope['user']
+        logging.info('>- ' + str(user))
+        logging.info(f">- User {user.username} connected")
+        await self.consume_notif()
+        
+    async def disconnect(self, close_code):
+        logging.debug(f">- disconnecting {close_code}")
+        self.close()
+    async def receive(self, text_data):
+        print(f'received \'{text_data}\'')
+    
+    

@@ -9,7 +9,7 @@ import default_header from "../assets/default_header.jpg"
 
 import { EditProfile } from "./modals/editProfile";
 
-export const ProfileHeader = ({tweets, username, profileImageURL, headerImageURL}) => {
+export const ProfileHeader = ({tweetsNumber, username, profileImageURL, headerImageURL}) => {
     const {userId} = useParams(); 
     const [followers, setFollowers] = useState([]);
     const [following, setFollowing] = useState([]);
@@ -18,7 +18,6 @@ export const ProfileHeader = ({tweets, username, profileImageURL, headerImageURL
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [imageProfile,setImageProfile] = useState(null);
     const [imageHeader, setImageHeader] = useState(null);
-    const [isProfile, setIsProfile] = useState()
     const [currUserId, setcurrUserId] = useState(localStorage.getItem('user_id'));
 
     const handleOpenDialog = () => {
@@ -149,7 +148,7 @@ export const ProfileHeader = ({tweets, username, profileImageURL, headerImageURL
     }
 
     return (
-        <Container fluid style={{}}>
+        <Container fluid style={{justifyContent:'center', alignItems:'center'}}>
             <Row style={{ position: "fixed", backgroundColor: "brown", width: "48.3%", overflow: "auto"}}>
                 <Col xs={2}>
                     <img src={back} alt="Back" width={"20px"} onClick={() => navigate(-1)} />
@@ -158,19 +157,40 @@ export const ProfileHeader = ({tweets, username, profileImageURL, headerImageURL
                     <h4> {username}</h4>
                 </Col>
             </Row>
-            <Row >
-                <Col xs={12}>
-                    <img src={imageHeader} alt="twt header" onClick={(e)=> handleImageNav(userId, "header")} style={{ marginTop: "100px", width:"100%", maxHeight:"20vh", cursor:"pointer" }} />
-                </Col>
-            </Row>
+        
+        <Row>
+            <Col xs={12}>
+                <div style={{ position: 'relative', width: '100%', height: '20vh', marginTop: '100px' }}>
+                    <img
+                        src={imageHeader}
+                        alt="Header"
+                        onClick={(e) => handleImageNav(userId, "header")}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                    />
+                    <img
+                        src={imageProfile}
+                        alt="Profile pic"
+                        onClick={(e) => handleImageNav(userId, "profile")}
+                        style={{
+                            position: 'absolute',
+                            bottom: '-50px',  
+                            left: '20px',  
+                            width: '100px',
+                            height: '100px',
+                            borderRadius: '50%',
+                            border: '3px solid white', 
+                            cursor: 'pointer'
+                        }}
+                    />
+                </div>
+            </Col>
+        </Row>
             <Row>
-                <Col xs={3}>
-                    <img src={imageProfile} alt="Profile pic" onClick={(e)=> handleImageNav(userId, "profile")} style={{width:"100px", height:"100px", borderRadius:"50%", cursor:"pointer"}}/>
-                </Col>
+            
                 <Col xs={9}>
                 {userId === currUserId && (
                     <Button style={{display: "flex" ,marginLeft: "auto", marginTop:"5vh"}} onClick={handleOpenDialog}>Edit profile</Button>
-               
+            
                 )}
                     <EditProfile show={showEditDialog} handleClose={handleCloseDialog} profileImage={imageProfile} headerImage={imageHeader}/>
                 {userId !== currUserId && (
@@ -193,20 +213,22 @@ export const ProfileHeader = ({tweets, username, profileImageURL, headerImageURL
                     <p>Sample bio</p>
                 </Col>
             </Row>
-            <Row>
-                <Col xs={4}>
+
+            <Row style={{display:'flex', justifyContent:'space-around',}}>
+                <Col xs={4} style={{textAlign:'center'}}>
                     <p>Following</p>
                     <p>{following.length} </p>
                 </Col>
-                <Col xs={4}>
+                <Col xs={4} style={{textAlign:'center'}}>
                     <p>Followers</p>
                     <p>{followers.length} </p>
                 </Col>
-                <Col xs={4}>
+                <Col xs={4} style={{textAlign:'center'}}>
                     <p>Tweets</p>
-                    <p>{tweets.length}</p>
+                    <p>{tweetsNumber}</p>
                 </Col>
             </Row>
+
         </Container>
     )
 }
