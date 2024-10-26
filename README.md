@@ -172,7 +172,7 @@ To be able to use this project you will need some stuff first.
 - [x] Videos in comments 
 - [x] Comments on comments possibillity
 - [x] Pagination for every page with posts
-- [] Messages
+- [ ] Messages
 
 
 
