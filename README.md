@@ -78,6 +78,7 @@ In the frontend, the videos are handled with MediaSource. We fetch the durations
 
 ![Search image](https://github.com/AndraCristiana07/twt/blob/main/images/search.png?raw=true)
 
+
 There's a search user implemented with ElasticSearch. You can search by name or username and you will get a list of the users containing the string you searched for. From here you can click on them and go to that user's profile page.
 
 **Repost**
