@@ -497,7 +497,7 @@ const CommentView = () => {
                             handleUnretweet={handleUnretweet}
                         />
                      <h5>Comments</h5>
-                    {/* {Array.isArray(comments) && comments.length > 0 ? (
+                    {Array.isArray(comments) && comments.length > 0 ? (
                         comments.map(comment => (
                             < TweetCard 
                                 key={comment.id}
@@ -514,7 +514,7 @@ const CommentView = () => {
                         ))
                     ) : (
                         <p>No comments available.</p>
-                    )} */}
+                    )}
                 </Col>
             </Row>
         </Container>

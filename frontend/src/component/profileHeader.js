@@ -159,7 +159,7 @@ export const ProfileHeader = ({tweetsNumber, username, profileImageURL, headerIm
             </Row>
         
         <Row>
-            <Col xs={12}>
+            <Col >
                 <div style={{ position: 'relative', width: '100%', height: '20vh', marginTop: '100px' }}>
                     <img
                         src={imageHeader}
@@ -187,9 +187,9 @@ export const ProfileHeader = ({tweetsNumber, username, profileImageURL, headerIm
         </Row>
             <Row>
             
-                <Col xs={9}>
+                <Col >
                 {userId === currUserId && (
-                    <Button style={{display: "flex" ,marginLeft: "auto", marginTop:"5vh"}} onClick={handleOpenDialog}>Edit profile</Button>
+                    <Button style={{display: "flex" ,marginLeft: "auto", marginRight:'5vw' ,marginTop:"5vh"}} onClick={handleOpenDialog}>Edit profile</Button>
             
                 )}
                     <EditProfile show={showEditDialog} handleClose={handleCloseDialog} profileImage={imageProfile} headerImage={imageHeader}/>
@@ -198,11 +198,11 @@ export const ProfileHeader = ({tweetsNumber, username, profileImageURL, headerIm
                 )}
                 </Col>
             </Row>
-            <Row>
+            {/* <Row>
                 <Col xs={4}>
                     <h4>{userId}</h4>
                 </Col>
-            </Row>
+            </Row> */}
             <Row>
                 <Col xs={4}>
                     <p>@{username}</p>

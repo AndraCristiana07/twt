@@ -256,7 +256,11 @@ export const TweetCard = ({
 
         };
         fetchImages();
-        fetchUserInfo(tweet.user_id)
+        console.log(`user id for comments ${tweet.user_id} `)
+        if(tweet.user_id){
+            fetchUserInfo(tweet.user_id)
+
+        }
         fetchProfileImage();
         setVideoInfo(tweet.video_info)
         // console.log(videoInfo)
@@ -277,7 +281,7 @@ export const TweetCard = ({
                 {tweet && (
 
                     <><Row>
-                        <Col xs={2}>
+                        <Col xs={5}>
                             <Card.Title onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/profile/${tweet.user_id}`);
@@ -451,10 +455,14 @@ export const TweetCard = ({
     return (
         <>
         {console.log(`this comments id : ${tweet.id}`)}
+        {tweet.id && (
+
         <Card key={tweet.id} className="mb-4 tweet-card" onClick={() => {
             handleNavigation(tweet)
         }}>
-            {tweet.retweet_id !== null && (
+            {console.log("AICI E NULL!!! pt " +tweet.id + " retweet id for tweet " + tweet.retweet_id)}
+
+            {tweet.retweet_id !== null && tweet.retweet_id !== undefined(
                 <Card.Body>
                     <Container fluid>
                         <Row>
@@ -465,7 +473,9 @@ export const TweetCard = ({
                         </Row>
                         {!tweet.content && !tweet.image_urls && (
                             <Container fluid>
-                                {/* {console.log("tweet id for retweet" + tweet.id)} */}
+                                {console.log(`the retweet id that is not it ${tweet.retweet_id}`)}
+                                {console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")}
+                                {console.log("tweet id for retweet" + tweet.id)}
                                 {tweet.original_tweet.id === null && tweet.retweet_id &&
                                     <img src={deleteImg} style={{ width: "30px", display: "flex", marginLeft: "auto" }} alt="Delete" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(tweet.id); }} />}
                                 <DeleteDialog tweetId={tweet.id} show={showDeleteDialog} handleClose={handleCloseDeleteDialog} />
@@ -485,7 +495,6 @@ export const TweetCard = ({
                                 <Card>
                                     {tweetHeader(tweet.original_tweet)}
                                 
-                                    {/* TODO: change videos for ogtweet */}
                                     {tweet.original_tweet.image_urls && tweetGrid(tweet.original_tweet, ogTweetImages, videos)}
                                     {tweetDate(tweet)}
                                 </Card>
@@ -498,6 +507,9 @@ export const TweetCard = ({
             {tweet.retweet_id === null && (
                 // <Card.Body>
                 <div>
+                    {/* {console.log("tweet id for " + tweet.id)}
+                    {console.log("retweet id for tweet" + tweet.retweet_id)} */}
+
                     {tweetHeader(tweet)}
                     {tweet.image_urls && tweetGrid(tweet, images, videos)}
                     {tweetDate(tweet)}
@@ -506,6 +518,8 @@ export const TweetCard = ({
                 // </Card.Body>
             )}
         </Card>
+        )}
+
         </>
     );
 };

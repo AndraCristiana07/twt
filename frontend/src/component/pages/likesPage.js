@@ -294,6 +294,12 @@ export const LikesPage = () => {
     };
     
 
+    
+    const handleNavigation = (tweet) => {
+        navigate(`/tweet/${tweet.id}`);
+    
+    }
+
     const handleCloseDeleteDialog = () => {
         setShowDeleteDialog(false);
         setTweetIdToDelete(null);
@@ -328,6 +334,7 @@ export const LikesPage = () => {
                                         originalTweetImg={tweet.original_tweet}
                                         tweet={tweet}
                                         tweetUrl={'get_tweet'}
+                                        handleNavigation={handleNavigation}
                                         handleLike={handleLike}
                                         handleUnlike={handleUnlike}
                                         handleRetweet={handleRetweet}

@@ -29,6 +29,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
 # from confluent_kafka import Consumer, KafkaError
 from aiokafka import AIOKafkaConsumer
 from aiokafka.errors import KafkaError, KafkaTimeoutError
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 
 
 class HomeView(APIView):
@@ -438,7 +439,7 @@ class SearchUserView(APIView):
             )
 
         query = MultiMatch(
-            query=q, fields=["name", "email", "username"], type="phrase_prefix"
+            query=q, fields=["name","username"], type="phrase_prefix"
         )
         
         logging.error(query)
@@ -446,14 +447,29 @@ class SearchUserView(APIView):
         search = UserDocument.search().query(query)
 
         response = search.execute()
+        response_list = list(response)
+        page_number = request.GET.get("page")
+
+        paginator = Paginator(response_list, 10)
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
 
         users = []
-        for r in response:
+        for r in page_obj.object_list:
             users.append(
                 {"id": r.id, "email": r.email, "name": r.name, "username": r.username}
             )
 
-        return Response(users, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "users":users, "page": page_number,
+                "total_pages": paginator.num_pages,
+                "total_users": paginator.count,
+            }, status=status.HTTP_200_OK)
 
 class NotificationsConsumer(AsyncWebsocketConsumer):
     async def consume_notif(self):

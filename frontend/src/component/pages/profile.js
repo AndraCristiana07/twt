@@ -284,7 +284,10 @@ export const Profile = (props) => {
     };
 
 
-
+    const handleNavigation = (tweet) => {
+        navigate(`/tweet/${tweet.id}`);
+    
+    }
 
 
     return (
@@ -311,6 +314,7 @@ export const Profile = (props) => {
                     </Col>
                 </Row>
             </Container>
+            <Container className="container mt-5 text-center">
             {loading ? <p> Loading... </p> : (
                 <div >
                     {console.log("length " + tweets.length)}
@@ -322,6 +326,7 @@ export const Profile = (props) => {
                             <TweetCard
                                 key={tweet.id}
                                 originalTweetImg={tweet.original_tweet}
+                                handleNavigation={handleNavigation}
                                 tweet={tweet}
                                 tweetUrl={'get_tweet'}
                                 handleLike={handleLike}
@@ -337,6 +342,8 @@ export const Profile = (props) => {
                     )}
                 </div>
             )}
+            </Container>
+
             {/* <Row className="pagination-controls">
                         <Col>
                             <Button disabled={page <= 1} onClick={()=> setPage(page-1)}> Previous</Button>

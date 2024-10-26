@@ -198,35 +198,10 @@ export const FollowingTimeline = () => {
         </Container>
         <Container className="container mt-5 text-center">
         {loading ? <p key="loading_tweets"> Loading... </p> : (
-          // video test
+        
           <>
 
             <div>
-              {/* <Tooltip title="Media">
-                <div style={{position: "relative", width: '4vw', height: '4vh'}}>
-                    <input
-                        onChange={handleTestVideoChange}
-                        type="file"
-                        title=""
-                        multiple
-                        style={{
-                            position: 'absolute',
-                            width: '100%',
-                            height: '100%',
-                            opacity: 0,
-                            zIndex: 2,
-                            cursor: 'pointer'
-                        }}/>
-                    <img src={media} alt="media" title="media content"
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            position: 'absolute',
-                            zIndex: 1
-                        }}/>
-                </div>
-            </Tooltip> */}
-            </div><div>
               {Array.isArray(tweets) && tweets.length > 0 ? (
                 tweets.map(tweet => (
                   <TweetCard

@@ -893,6 +893,7 @@ class GetCommentsView(APIView):
                     original_media_url = original_tweet.image_urls
                     original_video_info = FriendsTimelineView.get_videos_info(original_tweet_id, original_media_url)
 
+                    # og tweet exists?!?!?!
                     comment_details["original_tweet"] = {
                         "id": str(original_tweet_id),
                         "user_id": original_tweet.user_id,
@@ -1367,22 +1368,177 @@ class GetCommentsForComment(APIView):
             "SELECT * FROM twitter.comments WHERE tweet_id = %s ALLOW FILTERING",
             (comment_id,),
         )
-        comments = [
-            {
-                "id": str(row.id),
-                "tweet_id": row.tweet_id,
-                "user_id": row.user_id,
-                "content": row.content,
-                "created_at": row.created_at,
-                "retweet_id": row.retweet_id,
-                "image_urls": row.image_urls,
-                "likes": row.likes,
-                "comments": row.comments,
-                "retweets": row.retweets,
+        # comments = [
+        #     {
+        #         "id": str(row.id),
+        #         "tweet_id": row.tweet_id,
+        #         "user_id": row.user_id,
+        #         "content": row.content,
+        #         "created_at": row.created_at,
+        #         "retweet_id": row.retweet_id,
+        #         "image_urls": row.image_urls,
+        #         "likes": row.likes,
+        #         "comments": row.comments,
+        #         "retweets": row.retweets,
+        #     }
+        #     for row in rows
+        # ]
+        comments_list = list(rows)
+        page_number = request.GET.get("page")
+
+        paginator = Paginator(comments_list, 10)
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+        timeline = []
+        for tweet in page_obj.object_list:
+            tweet_id = tweet.id
+            user_id = str(request.user.id)
+            like = session.execute(
+                "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            like_id = str(like.id) if like else None
+            retweet = session.execute(
+                "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                (tweet_id, user_id),
+            ).one()
+            delete_retweet_id = str(retweet.id) if retweet else None
+
+            result = session.execute(
+                "SELECT retweet_id FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                (tweet_id,),
+            ).one()
+
+            try:
+                user = User.objects.get(id=tweet.user_id)
+            except User.DoesNotExist:
+                return Response(
+                    {"message": "User does not exist"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            serializer = UserSerializer(user)
+            username = serializer.data["username"]
+            profile_image = serializer.data["profile_image"]
+            media_url = tweet.image_urls
+            
+            video_info = FriendsTimelineView.get_videos_info(tweet_id, str(media_url))
+
+            tweet_details = {
+                "id": tweet_id,
+                "user_id": tweet.user_id,
+                "content": tweet.content,
+                "created_at": tweet.created_at,
+                "retweet_id": tweet.retweet_id,
+                "image_urls": tweet.image_urls,
+                "duration": tweet.video_duration,
+                "likes": tweet.likes,
+                "comments": tweet.comments,
+                "retweets": tweet.retweets,
+                "username": username,
+                "profile_image": profile_image,
+                "isLiked": bool(like),
+                "isRetweeted": bool(retweet),
+                "like_id": like_id,
+                "delete_retweet_id": delete_retweet_id,
+                "video_info": video_info if video_info else None,
             }
-            for row in rows
-        ]
-        return Response({"comments": comments}, status=status.HTTP_200_OK)
+
+            if result and result.retweet_id:
+                original_tweet_id = result.retweet_id
+                original_tweet = session.execute(
+                    "SELECT * FROM twitter.tweets WHERE id = %s ALLOW FILTERING",
+                    (original_tweet_id,),
+                ).one()
+
+                if original_tweet:
+                    try:
+                        original_user = User.objects.get(id=original_tweet.user_id)
+                    except User.DoesNotExist:
+                        return Response(
+                            {"message": "User does not exist"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    original_serializer = UserSerializer(original_user)
+                    original_tweet_username = original_serializer.data["username"]
+                    original_tweet_profile_image = original_serializer.data["profile_image"]
+
+                    original_tweet_like = session.execute(
+                        "SELECT id FROM twitter.likes WHERE tweet_id = %s AND user_id = %s ALLOW FILTERING",
+                        (original_tweet_id, user_id),
+                    ).one()
+                    original_tweet_like_id = str(original_tweet_like.id) if original_tweet_like else None
+
+                    original_tweet_retweet = session.execute(
+                        "SELECT id FROM twitter.tweets WHERE retweet_id = %s AND user_id = %s ALLOW FILTERING",
+                        (original_tweet_id, user_id),
+                    ).one()
+                    original_tweet_delete_retweet_id = (
+                        str(original_tweet_retweet.id) if original_tweet_retweet else None
+                    )
+                    
+                    original_media_url = original_tweet.image_urls
+                    original_video_info = FriendsTimelineView.get_videos_info(original_tweet_id, original_media_url)
+
+                    tweet_details["original_tweet"] = {
+                        "id": str(original_tweet_id),
+                        "user_id": original_tweet.user_id,
+                        "content": original_tweet.content if original_tweet.content else "Original Tweet Deleted",
+                        "created_at": original_tweet.created_at,
+                        "retweet_id": original_tweet.retweet_id,
+                        "image_urls": original_tweet.image_urls,
+                        "duration": original_tweet.video_duration,
+                        "likes": original_tweet.likes,
+                        "comments": original_tweet.comments,
+                        "retweets": original_tweet.retweets,
+                        "isLiked": bool(original_tweet_like),
+                        "isRetweeted": bool(original_tweet_retweet),
+                        "like_id": original_tweet_like_id,
+                        "delete_retweet_id": original_tweet_delete_retweet_id,
+                        "username": original_tweet_username,
+                        "profile_image": original_tweet_profile_image,
+                        "video_info": original_video_info
+                    }
+                else:
+                    tweet_details["original_tweet"] = {
+                        "id": None,
+                        "user_id": None,
+                        "content": "Original tweet does not exist",
+                        "created_at": None,
+                        "retweet_id": None,
+                        "image_urls": [],
+                        "likes": 0,
+                        "comments": 0,
+                        "retweets": 0,
+                        "isLiked": False,
+                        "isRetweeted": False,
+                        "like_id": None,
+                        "delete_retweet_id": None,
+                        "username": "Unknown User",
+                        "profile_image": "default_profile_image_url",
+                        "video_info": None,
+                        "duration": None
+                    }
+
+            timeline.append(tweet_details)
+
+        return Response(
+            {
+                "comments": timeline,
+                "page": page_number,
+                "total_pages": paginator.num_pages,
+                "total_tweets": paginator.count,
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+        # return Response({"comments": comments}, status=status.HTTP_200_OK)
 
 class GetLikesPerTweetView(APIView):
     def get(self, request, tweet_id):
